@@ -275,19 +275,11 @@ usb_report_t InputReport::getDebugReport(const InputState &state) {
 
     std::stringstream out;
 
-    auto bar = [](uint16_t val) { return std::string(val / 511, '#'); };
-
-    if (drum.don_left.triggered || drum.ka_left.triggered || drum.don_right.triggered || drum.ka_right.triggered) {
-        out << "(" << (drum.ka_left.triggered ? "*" : " ") << "( "                                         //
-            << std::setw(4) << drum.ka_left.raw << "[" << std::setw(8) << bar(drum.ka_left.raw) << "]"     //
-            << "(" << (drum.don_left.triggered ? "*" : " ") << "| "                                        //
-            << std::setw(4) << drum.don_left.raw << "[" << std::setw(8) << bar(drum.don_left.raw) << "]"   //
-            << "|" << (drum.don_right.triggered ? "*" : " ") << ") "                                       //
-            << std::setw(4) << drum.don_right.raw << "[" << std::setw(8) << bar(drum.don_right.raw) << "]" //
-            << ")" << (drum.ka_right.triggered ? "*" : " ") << ") "                                        //
-            << std::setw(4) << drum.ka_right.raw << "[" << std::setw(8) << bar(drum.ka_right.raw) << "]"   //
-            << "\n";
-    }
+    // CSV format: triggered_ka_left,ka_raw,triggered_don_left,don_left_raw,triggered_don_right,don_right_raw,triggered_ka_right,ka_right_raw
+    out << (drum.ka_left.triggered ? "T" : "F") << "," << drum.ka_left.raw << ","      //
+        << (drum.don_left.triggered ? "T" : "F") << "," << drum.don_left.raw << ","    //
+        << (drum.don_right.triggered ? "T" : "F") << "," << drum.don_right.raw << ","  //
+        << (drum.ka_right.triggered ? "T" : "F") << "," << drum.ka_right.raw << "\n";
 
     m_debug_report = out.str();
 

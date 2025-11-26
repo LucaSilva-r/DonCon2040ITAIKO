@@ -1,0 +1,19 @@
+# Python virtual environment
+venv/
+env/
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Log files
+drum_log_*.csv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
