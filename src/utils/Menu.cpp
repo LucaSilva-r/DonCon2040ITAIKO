@@ -38,7 +38,7 @@ const std::map<Menu::Page, const Menu::Descriptor> Menu::descriptors = {
       "Drum Settings",                                                           //
       {{"Hold Time", Menu::Descriptor::Action::GotoPageDrumDebounceDelay},       //
        {"Key Time", Menu::Descriptor::Action::GotoPageDrumKeyTimeout},           //
-       {"Debounce", Menu::Descriptor::Action::GotoPageDrumGlobalDebounce},       //
+       {"Debounce", Menu::Descriptor::Action::GotoPageDrumDebounce},             //
        {"Anti-Ghost", Menu::Descriptor::Action::GotoPageDrumAntiGhosting},       //
        {"Thresholds", Menu::Descriptor::Action::GotoPageDrumTriggerThresholds},  //
        {"Double Trg", Menu::Descriptor::Action::GotoPageDrumDoubleTrigger}},     //
@@ -81,10 +81,23 @@ const std::map<Menu::Page, const Menu::Descriptor> Menu::descriptors = {
       {{"", Menu::Descriptor::Action::SetDrumKeyTimeout}}, //
       UINT8_MAX}},
 
-    {Menu::Page::DrumGlobalDebounce,                           //
-     {Menu::Descriptor::Type::Value,                           //
-      "Global Debounce (ms)",                                  //
-      {{"", Menu::Descriptor::Action::SetDrumGlobalDebounce}}, //
+    {Menu::Page::DrumDebounce,                                    //
+     {Menu::Descriptor::Type::Menu,                               //
+      "Debounce Settings",                                        //
+      {{"Don", Menu::Descriptor::Action::GotoPageDrumDonDebounce}, //
+       {"Ka", Menu::Descriptor::Action::GotoPageDrumKatDebounce}}, //
+      0}},
+
+    {Menu::Page::DrumDonDebounce,                           //
+     {Menu::Descriptor::Type::Value,                        //
+      "Don Debounce (ms)",                                  //
+      {{"", Menu::Descriptor::Action::SetDrumDonDebounce}}, //
+      UINT8_MAX}},
+
+    {Menu::Page::DrumKatDebounce,                           //
+     {Menu::Descriptor::Type::Value,                        //
+      "Ka Debounce (ms)",                                   //
+      {{"", Menu::Descriptor::Action::SetDrumKatDebounce}}, //
       UINT8_MAX}},
 
     {Menu::Page::DrumAntiGhosting,                                    //
@@ -273,8 +286,10 @@ uint16_t Menu::getCurrentValue(Menu::Page page) {
         return m_store->getDebounceDelay();
     case Page::DrumKeyTimeout:
         return m_store->getKeyTimeoutMs();
-    case Page::DrumGlobalDebounce:
-        return m_store->getGlobalDebounceMs();
+    case Page::DrumDonDebounce:
+        return m_store->getDonDebounceMs();
+    case Page::DrumKatDebounce:
+        return m_store->getKatDebounceMs();
     case Page::DrumAntiGhostDon:
         return static_cast<uint16_t>(m_store->getAntiGhostDonEnabled());
     case Page::DrumAntiGhostKa:
@@ -303,6 +318,7 @@ uint16_t Menu::getCurrentValue(Menu::Page page) {
         return static_cast<uint16_t>(m_store->getLedEnablePlayerColor());
     case Page::Main:
     case Page::Drum:
+    case Page::DrumDebounce:
     case Page::DrumAntiGhosting:
     case Page::DrumTriggerThresholds:
     case Page::DrumDoubleTriggerThresholds:
@@ -340,8 +356,11 @@ void Menu::gotoParent(bool do_restore) {
         case Page::DrumKeyTimeout:
             m_store->setKeyTimeoutMs(current_state.original_value);
             break;
-        case Page::DrumGlobalDebounce:
-            m_store->setGlobalDebounceMs(current_state.original_value);
+        case Page::DrumDonDebounce:
+            m_store->setDonDebounceMs(current_state.original_value);
+            break;
+        case Page::DrumKatDebounce:
+            m_store->setKatDebounceMs(current_state.original_value);
             break;
         case Page::DrumAntiGhostDon:
             m_store->setAntiGhostDonEnabled(static_cast<bool>(current_state.original_value));
@@ -409,6 +428,7 @@ void Menu::gotoParent(bool do_restore) {
             break;
         case Page::Main:
         case Page::Drum:
+        case Page::DrumDebounce:
         case Page::DrumAntiGhosting:
         case Page::DrumTriggerThresholds:
         case Page::DrumDoubleTriggerThresholds:
@@ -461,8 +481,14 @@ void Menu::performAction(Descriptor::Action action, uint16_t value) {
     case Descriptor::Action::GotoPageDrumKeyTimeout:
         gotoPage(Page::DrumKeyTimeout);
         break;
-    case Descriptor::Action::GotoPageDrumGlobalDebounce:
-        gotoPage(Page::DrumGlobalDebounce);
+    case Descriptor::Action::GotoPageDrumDebounce:
+        gotoPage(Page::DrumDebounce);
+        break;
+    case Descriptor::Action::GotoPageDrumDonDebounce:
+        gotoPage(Page::DrumDonDebounce);
+        break;
+    case Descriptor::Action::GotoPageDrumKatDebounce:
+        gotoPage(Page::DrumKatDebounce);
         break;
     case Descriptor::Action::GotoPageDrumAntiGhosting:
         gotoPage(Page::DrumAntiGhosting);
@@ -512,8 +538,11 @@ void Menu::performAction(Descriptor::Action action, uint16_t value) {
     case Descriptor::Action::SetDrumKeyTimeout:
         m_store->setKeyTimeoutMs(value);
         break;
-    case Descriptor::Action::SetDrumGlobalDebounce:
-        m_store->setGlobalDebounceMs(value);
+    case Descriptor::Action::SetDrumDonDebounce:
+        m_store->setDonDebounceMs(value);
+        break;
+    case Descriptor::Action::SetDrumKatDebounce:
+        m_store->setKatDebounceMs(value);
         break;
     case Descriptor::Action::SetDrumAntiGhostDon:
         m_store->setAntiGhostDonEnabled(static_cast<bool>(value));

@@ -24,7 +24,9 @@ class Menu {
         Bootsel,
 
         DrumDebounceDelay,
-        DrumGlobalDebounce,
+        DrumDebounce,
+        DrumDonDebounce,
+        DrumKatDebounce,
         DrumKeyTimeout,
         DrumAntiGhosting,
         DrumAntiGhostDon,
@@ -76,7 +78,9 @@ class Menu {
             GotoPageBootsel,
 
             GotoPageDrumDebounceDelay,
-            GotoPageDrumGlobalDebounce,
+            GotoPageDrumDebounce,
+            GotoPageDrumDonDebounce,
+            GotoPageDrumKatDebounce,
             GotoPageDrumKeyTimeout,
             GotoPageDrumAntiGhosting,
             GotoPageDrumAntiGhostDon,
@@ -101,7 +105,8 @@ class Menu {
             SetUsbMode,
 
             SetDrumDebounceDelay,
-            SetDrumGlobalDebounce,
+            SetDrumDonDebounce,
+            SetDrumKatDebounce,
             SetDrumKeyTimeout,
             SetDrumAntiGhostDon,
             SetDrumAntiGhostKa,

@@ -175,7 +175,8 @@ int main() {
                          .data = {.led_enable_player_color = settings_store->getLedEnablePlayerColor()}});
 
         drum.setDebounceDelay(settings_store->getDebounceDelay());
-        drum.setGlobalDebounceMs(settings_store->getGlobalDebounceMs());
+        drum.setDonDebounceMs(settings_store->getDonDebounceMs());
+        drum.setKatDebounceMs(settings_store->getKatDebounceMs());
         drum.setKeyTimeoutMs(settings_store->getKeyTimeoutMs());
         drum.setAntiGhostDonEnabled(settings_store->getAntiGhostDonEnabled());
         drum.setAntiGhostKaEnabled(settings_store->getAntiGhostKaEnabled());

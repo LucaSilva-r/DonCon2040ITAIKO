@@ -194,7 +194,7 @@ std::map<Drum::Id, uint16_t> Drum::readInputs() {
 
 bool Drum::isGlobalDebounceElapsed() const {
     const uint32_t now = to_ms_since_boot(get_absolute_time());
-    return (now - m_global_debounce_time) >= m_config.global_debounce_ms;
+    return (now - m_global_debounce_time) >= m_config.don_debounce;
 }
 
 void Drum::updateGlobalDebounce() { m_global_debounce_time = to_ms_since_boot(get_absolute_time()); }
@@ -241,7 +241,7 @@ uint16_t Drum::getThreshold(const Id pad_id, const Config::Thresholds &threshold
 
 void Drum::updateDigitalInputState(Utils::InputState &input_state, const std::map<Drum::Id, uint16_t> &raw_values) {
     const uint32_t now = to_ms_since_boot(get_absolute_time());
-    const bool global_debounce_ok = isGlobalDebounceElapsed();
+    //const bool global_debounce_ok = isGlobalDebounceElapsed();
 
     // PHASE 1: Maintain existing button states (key timeout logic)
     // Key timeout is ABSOLUTE - no pad can retrigger until timeout expires
@@ -254,48 +254,69 @@ void Drum::updateDigitalInputState(Utils::InputState &input_state, const std::ma
 
     for (const auto &[id, pad] : m_pads) {
         // Skip if pad is already active (key timeout not expired - ABSOLUTE)
+
+        const uint16_t adc_value = raw_values.at(id);
+        const uint16_t light_threshold = getThreshold(id, m_config.trigger_thresholds);
+        //const uint16_t heavy_threshold = getThreshold(id, m_config.double_trigger_thresholds);
+        const uint16_t last_adc_value = pad.getLastAdcValue();
+
+        m_pads.at(id).setLastAdcValue(adc_value);
+    
         if (pad.getState()) {
             continue;
         }
 
-        const uint16_t adc_value = raw_values.at(id);
-        const uint16_t light_threshold = getThreshold(id, m_config.trigger_thresholds);
-        const uint16_t heavy_threshold = getThreshold(id, m_config.double_trigger_thresholds);
-
         // Check if above light threshold
-        if (adc_value <= light_threshold) {
+        if (adc_value - last_adc_value <= light_threshold) {
             continue;
         }
 
         // Anti-ghosting check - blocks opposite pad type
-        if (!isAntiGhostOk(id)) {
+        // if (!isAntiGhostOk(id)) {
+        //     continue;
+        // }
+
+        // Per-sensor debounce check (hold time from last state change)
+        const uint32_t time_since_change = now - pad.getLastChange();
+        if (time_since_change < m_config.key_timeout_ms) {
             continue;
         }
 
-        // Per-sensor debounce check (hold time from last state change)
-        const uint32_t time_since_change = now - m_pads.at(id).getLastChange();
-        if (time_since_change < m_config.debounce_delay_ms) {
-            continue;
+        if (id == Id::DON_LEFT || id == Id::DON_RIGHT) {
+
+            if (now - last_kat_time < m_config.kat_debounce) {
+                continue;
+            } else {
+                last_don_time = now;
+            }
+
+        } else {
+
+            if (now - last_don_time < m_config.don_debounce) {
+                continue;
+            } else {
+                last_kat_time = now;
+            }
         }
 
         // Two trigger conditions (both respect key timeout above):
         // 1. Light hit: requires global debounce to be clear
         // 2. Heavy hit: bypasses global debounce (only if Threshold mode enabled)
-        bool should_trigger = false;
+        //bool should_trigger = false;
 
-        if (global_debounce_ok) {
-            // Light hit is OK
-            should_trigger = true;
-        } else if (m_config.double_trigger_mode == Config::DoubleTriggerMode::Threshold &&
-                   adc_value > heavy_threshold) {
-            // Heavy hit bypasses global debounce (only in Threshold mode)
-            should_trigger = true;
-        }
+        // if (global_debounce_ok) {
+        //     // Light hit is OK
+        //     should_trigger = true;
+        // } else if (m_config.double_trigger_mode == Config::DoubleTriggerMode::Threshold &&
+        //            adc_value > heavy_threshold) {
+        //     // Heavy hit bypasses global debounce (only in Threshold mode)
+        //     should_trigger = true;
+        // }
 
-        if (should_trigger) {
+        // if (should_trigger) {
             m_pads.at(id).trigger(m_config.key_timeout_ms);
             any_triggered = true;
-        }
+        // }
     }
 
     // PHASE 3: Update global debounce if any hit occurred
@@ -348,7 +369,9 @@ void Drum::updateInputState(Utils::InputState &input_state) {
 
 void Drum::setDebounceDelay(const uint16_t delay) { m_config.debounce_delay_ms = delay; }
 
-void Drum::setGlobalDebounceMs(const uint16_t ms) { m_config.global_debounce_ms = ms; }
+void Drum::setDonDebounceMs(const uint16_t ms) { m_config.don_debounce = ms; }
+
+void Drum::setKatDebounceMs(const uint16_t ms) { m_config.kat_debounce = ms; }
 
 void Drum::setKeyTimeoutMs(const uint16_t ms) { m_config.key_timeout_ms = ms; }
 

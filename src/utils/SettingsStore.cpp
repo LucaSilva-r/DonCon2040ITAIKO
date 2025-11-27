@@ -25,7 +25,8 @@ SettingsStore::SettingsStore()
                      .debounce_delay = Config::Default::drum_config.debounce_delay_ms,
                      .double_trigger_mode = Config::Default::drum_config.double_trigger_mode,
                      .double_trigger_thresholds = Config::Default::drum_config.double_trigger_thresholds,
-                     .global_debounce_ms = Config::Default::drum_config.global_debounce_ms,
+                     .don_debounce = Config::Default::drum_config.don_debounce,
+                     .kat_debounce = Config::Default::drum_config.kat_debounce,
                      .key_timeout_ms = Config::Default::drum_config.key_timeout_ms,
                      .anti_ghost_don_enabled = Config::Default::drum_config.anti_ghost_don_enabled,
                      .anti_ghost_ka_enabled = Config::Default::drum_config.anti_ghost_ka_enabled,
@@ -119,13 +120,21 @@ void SettingsStore::setDebounceDelay(const uint16_t delay) {
 }
 uint16_t SettingsStore::getDebounceDelay() const { return m_store_cache.debounce_delay; }
 
-void SettingsStore::setGlobalDebounceMs(const uint16_t ms) {
-    if (m_store_cache.global_debounce_ms != ms) {
-        m_store_cache.global_debounce_ms = ms;
+void SettingsStore::setDonDebounceMs(const uint16_t ms) {
+    if (m_store_cache.don_debounce != ms) {
+        m_store_cache.don_debounce = ms;
         m_dirty = true;
     }
 }
-uint16_t SettingsStore::getGlobalDebounceMs() const { return m_store_cache.global_debounce_ms; }
+uint16_t SettingsStore::getDonDebounceMs() const { return m_store_cache.don_debounce; }
+
+void SettingsStore::setKatDebounceMs(const uint16_t ms) {
+    if (m_store_cache.kat_debounce != ms) {
+        m_store_cache.kat_debounce = ms;
+        m_dirty = true;
+    }
+}
+uint16_t SettingsStore::getKatDebounceMs() const { return m_store_cache.kat_debounce; }
 
 void SettingsStore::setKeyTimeoutMs(const uint16_t ms) {
     if (m_store_cache.key_timeout_ms != ms) {
