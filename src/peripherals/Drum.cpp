@@ -181,7 +181,7 @@ Drum::Drum(const Config &config) : m_config(config), m_roll_counter(config.roll_
     m_pads.emplace(Id::KA_LEFT, config.adc_channels.ka_left);
     m_pads.emplace(Id::KA_RIGHT, config.adc_channels.ka_right);
 }
-jjjfdjj
+
 std::map<Drum::Id, int32_t> Drum::readInputs() {
     std::map<Id, int32_t> result;
 
@@ -297,8 +297,8 @@ void Drum::updateDigitalInputState(Utils::InputState &input_state, const std::ma
         if (id == Id::DON_LEFT || id == Id::DON_RIGHT) {
             last_don_time = now;
         } else {
-            last_kat_time = now;
-        }
+        last_kat_time = now;
+    }
     }                          
 
 
@@ -368,3 +368,5 @@ void Drum::setDoubleThresholds(const Config::Thresholds &thresholds) {
 }
 
 } // namespace Doncon::Peripherals
+
+ 
