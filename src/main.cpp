@@ -180,8 +180,6 @@ int main() {
 
         drum.setCrosstalkDebounceMs(settings_store->getCrosstalkDebounceMs());
         drum.setKeyTimeoutMs(settings_store->getKeyTimeoutMs());
-        drum.setAntiGhostDonEnabled(settings_store->getAntiGhostDonEnabled());
-        drum.setAntiGhostKaEnabled(settings_store->getAntiGhostKaEnabled());
         drum.setTriggerThresholds(settings_store->getTriggerThresholds());
         drum.setDoubleTriggerMode(settings_store->getDoubleTriggerMode());
         drum.setDoubleThresholds(settings_store->getDoubleTriggerThresholds());

@@ -31,14 +31,12 @@ class SettingsStore {
         uint16_t kat_debounce;
         uint16_t crosstalk_debounce;
         uint16_t key_timeout_ms;
-        bool anti_ghost_don_enabled;
-        bool anti_ghost_ka_enabled;
 
         std::array<uint8_t, m_store_size - sizeof(uint8_t) - sizeof(usb_mode_t) -
                                 sizeof(Peripherals::Drum::Config::Thresholds) - sizeof(uint8_t) - sizeof(bool) -
                                 sizeof(uint16_t) - sizeof(Peripherals::Drum::Config::DoubleTriggerMode) -
                                 sizeof(Peripherals::Drum::Config::Thresholds) - sizeof(uint16_t) - sizeof(uint16_t) -
-                                sizeof(uint16_t) - sizeof(uint16_t) - sizeof(bool) - sizeof(bool)>
+                                sizeof(uint16_t) - sizeof(uint16_t)>
             _padding;
     };
     static_assert(sizeof(Storecache) == m_store_size);
@@ -90,12 +88,6 @@ class SettingsStore {
 
     void setKeyTimeoutMs(uint16_t ms);
     [[nodiscard]] uint16_t getKeyTimeoutMs() const;
-
-    void setAntiGhostDonEnabled(bool enabled);
-    [[nodiscard]] bool getAntiGhostDonEnabled() const;
-
-    void setAntiGhostKaEnabled(bool enabled);
-    [[nodiscard]] bool getAntiGhostKaEnabled() const;
 
     void scheduleReboot(bool bootsel = false);
 

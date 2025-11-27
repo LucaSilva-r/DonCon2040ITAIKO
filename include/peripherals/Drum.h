@@ -63,9 +63,6 @@ class Drum {
 
         uint16_t key_timeout_ms;
 
-        bool anti_ghost_don_enabled;
-        bool anti_ghost_ka_enabled;
-
         uint32_t roll_counter_timeout_ms;
 
         AdcChannels adc_channels;
@@ -175,7 +172,6 @@ class Drum {
     std::map<Id, int32_t> readInputs();
     bool isGlobalDebounceElapsed() const;
     void updateGlobalDebounce();
-    bool isAntiGhostOk(Id pad_id) const;
     uint16_t getThreshold(Id pad_id, const Config::Thresholds &thresholds) const;
 
   public:
@@ -188,8 +184,6 @@ class Drum {
     void setKatDebounceMs(uint16_t ms);
     void setCrosstalkDebounceMs(uint16_t ms);
     void setKeyTimeoutMs(uint16_t ms);
-    void setAntiGhostDonEnabled(bool enabled);
-    void setAntiGhostKaEnabled(bool enabled);
     void setTriggerThresholds(const Config::Thresholds &thresholds);
     void setDoubleTriggerMode(Config::DoubleTriggerMode mode);
     void setDoubleThresholds(const Config::Thresholds &thresholds);

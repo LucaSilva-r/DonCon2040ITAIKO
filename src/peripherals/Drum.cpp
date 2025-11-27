@@ -201,31 +201,6 @@ bool Drum::isGlobalDebounceElapsed() const {
 
 void Drum::updateGlobalDebounce() { m_global_debounce_time = to_ms_since_boot(get_absolute_time()); }
 
-bool Drum::isAntiGhostOk(const Id pad_id) const {
-    // Determine if pad is Don (sides) or Ka (center)
-    const bool is_don_pad = (pad_id == Id::DON_LEFT || pad_id == Id::DON_RIGHT);
-    const bool is_ka_pad = (pad_id == Id::KA_LEFT || pad_id == Id::KA_RIGHT);
-
-    // Check if opposite type is currently active
-    if (is_don_pad && m_config.anti_ghost_don_enabled) {
-        // Don pads: check if any Ka pad is active
-        const bool ka_active = m_pads.at(Id::KA_LEFT).getState() || m_pads.at(Id::KA_RIGHT).getState();
-        if (ka_active) {
-            return false; // Block Don
-        }
-    }
-
-    if (is_ka_pad && m_config.anti_ghost_ka_enabled) {
-        // Ka pads: check if any Don pad is active
-        const bool don_active = m_pads.at(Id::DON_LEFT).getState() || m_pads.at(Id::DON_RIGHT).getState();
-        if (don_active) {
-            return false; // Block Ka
-        }
-    }
-
-    return true; // Anti-ghosting OK
-}
-
 uint16_t Drum::getThreshold(const Id pad_id, const Config::Thresholds &thresholds) const {
     switch (pad_id) {
     case Id::DON_LEFT:
@@ -354,10 +329,6 @@ void Drum::setKatDebounceMs(const uint16_t ms) { m_config.kat_debounce = ms; }
 void Drum::setCrosstalkDebounceMs(const uint16_t ms) { m_config.crosstalk_debounce = ms; }
 
 void Drum::setKeyTimeoutMs(const uint16_t ms) { m_config.key_timeout_ms = ms; }
-
-void Drum::setAntiGhostDonEnabled(const bool enabled) { m_config.anti_ghost_don_enabled = enabled; }
-
-void Drum::setAntiGhostKaEnabled(const bool enabled) { m_config.anti_ghost_ka_enabled = enabled; }
 
 void Drum::setTriggerThresholds(const Config::Thresholds &thresholds) { m_config.trigger_thresholds = thresholds; }
 

@@ -29,8 +29,6 @@ SettingsStore::SettingsStore()
                      .kat_debounce = Config::Default::drum_config.kat_debounce,
                      .crosstalk_debounce = Config::Default::drum_config.crosstalk_debounce,
                      .key_timeout_ms = Config::Default::drum_config.key_timeout_ms,
-                     .anti_ghost_don_enabled = Config::Default::drum_config.anti_ghost_don_enabled,
-                     .anti_ghost_ka_enabled = Config::Default::drum_config.anti_ghost_ka_enabled,
                      ._padding = {}}) {
     uint32_t current_page = m_flash_offset + m_flash_size - m_store_size;
     bool found_valid = false;
@@ -47,6 +45,7 @@ SettingsStore::SettingsStore()
         m_dirty = false;
     }
 }
+
 
 void SettingsStore::setUsbMode(const usb_mode_t mode) {
     if (mode != m_store_cache.usb_mode) {
@@ -152,22 +151,6 @@ void SettingsStore::setKeyTimeoutMs(const uint16_t ms) {
     }
 }
 uint16_t SettingsStore::getKeyTimeoutMs() const { return m_store_cache.key_timeout_ms; }
-
-void SettingsStore::setAntiGhostDonEnabled(const bool enabled) {
-    if (m_store_cache.anti_ghost_don_enabled != enabled) {
-        m_store_cache.anti_ghost_don_enabled = enabled;
-        m_dirty = true;
-    }
-}
-bool SettingsStore::getAntiGhostDonEnabled() const { return m_store_cache.anti_ghost_don_enabled; }
-
-void SettingsStore::setAntiGhostKaEnabled(const bool enabled) {
-    if (m_store_cache.anti_ghost_ka_enabled != enabled) {
-        m_store_cache.anti_ghost_ka_enabled = enabled;
-        m_dirty = true;
-    }
-}
-bool SettingsStore::getAntiGhostKaEnabled() const { return m_store_cache.anti_ghost_ka_enabled; }
 
 void SettingsStore::store() {
     if (m_dirty) {

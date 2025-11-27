@@ -29,9 +29,6 @@ class Menu {
         DrumKatDebounce,
         DrumCrosstalkDebounce,
         DrumKeyTimeout,
-        DrumAntiGhosting,
-        DrumAntiGhostDon,
-        DrumAntiGhostKa,
         DrumTriggerThresholds,
         DrumDoubleTrigger,
 
@@ -84,9 +81,6 @@ class Menu {
             GotoPageDrumKatDebounce,
             GotoPageDrumCrosstalkDebounce,
             GotoPageDrumKeyTimeout,
-            GotoPageDrumAntiGhosting,
-            GotoPageDrumAntiGhostDon,
-            GotoPageDrumAntiGhostKa,
             GotoPageDrumDoubleTrigger,
             GotoPageDrumTriggerThresholds,
             GotoPageDrumDoubleTriggerThresholds,
@@ -111,8 +105,6 @@ class Menu {
             SetDrumKatDebounce,
             SetDrumCrosstalkDebounce,
             SetDrumKeyTimeout,
-            SetDrumAntiGhostDon,
-            SetDrumAntiGhostKa,
 
             SetDoubleTriggerOff,
             SetDoubleTriggerAlways,

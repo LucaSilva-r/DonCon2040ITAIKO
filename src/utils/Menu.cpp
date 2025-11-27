@@ -38,7 +38,6 @@ const std::map<Menu::Page, const Menu::Descriptor> Menu::descriptors = {
       "Drum Settings",                                                           //
       {{"Hold Time", Menu::Descriptor::Action::GotoPageDrumDebounceDelay},       //
        {"Debounce", Menu::Descriptor::Action::GotoPageDrumDebounce},             //
-       {"Anti-Ghost", Menu::Descriptor::Action::GotoPageDrumAntiGhosting},       //
        {"Thresholds", Menu::Descriptor::Action::GotoPageDrumTriggerThresholds},  //
        {"Double Trg", Menu::Descriptor::Action::GotoPageDrumDoubleTrigger}},     //
       0}},                                                                       //
@@ -106,25 +105,6 @@ const std::map<Menu::Page, const Menu::Descriptor> Menu::descriptors = {
       "Crosstalk Debounce (ms)",                                  //
       {{"", Menu::Descriptor::Action::SetDrumCrosstalkDebounce}}, //
       UINT8_MAX}},
-
-    {Menu::Page::DrumAntiGhosting,                                    //
-     {Menu::Descriptor::Type::Menu,                                   //
-      "Anti-Ghosting",                                                //
-      {{"Don Pads", Menu::Descriptor::Action::GotoPageDrumAntiGhostDon}, //
-       {"Ka Pads", Menu::Descriptor::Action::GotoPageDrumAntiGhostKa}},  //
-      0}},                                                            //
-
-    {Menu::Page::DrumAntiGhostDon,                           //
-     {Menu::Descriptor::Type::Toggle,                        //
-      "Don Anti-Ghost",                                      //
-      {{"", Menu::Descriptor::Action::SetDrumAntiGhostDon}}, //
-      0}},                                                   //
-
-    {Menu::Page::DrumAntiGhostKa,                           //
-     {Menu::Descriptor::Type::Toggle,                       //
-      "Ka Anti-Ghost",                                      //
-      {{"", Menu::Descriptor::Action::SetDrumAntiGhostKa}}, //
-      0}},                                                  //
 
     {Menu::Page::DrumTriggerThresholdKaLeft,                           //
      {Menu::Descriptor::Type::Value,                                   //
@@ -299,10 +279,6 @@ uint16_t Menu::getCurrentValue(Menu::Page page) {
         return m_store->getKatDebounceMs();
     case Page::DrumCrosstalkDebounce:
         return m_store->getCrosstalkDebounceMs();
-    case Page::DrumAntiGhostDon:
-        return static_cast<uint16_t>(m_store->getAntiGhostDonEnabled());
-    case Page::DrumAntiGhostKa:
-        return static_cast<uint16_t>(m_store->getAntiGhostKaEnabled());
     case Page::DrumDoubleTrigger:
         return static_cast<uint16_t>(m_store->getDoubleTriggerMode());
     case Page::DrumTriggerThresholdKaLeft:
@@ -328,7 +304,6 @@ uint16_t Menu::getCurrentValue(Menu::Page page) {
     case Page::Main:
     case Page::Drum:
     case Page::DrumDebounce:
-    case Page::DrumAntiGhosting:
     case Page::DrumTriggerThresholds:
     case Page::DrumDoubleTriggerThresholds:
     case Page::Led:
@@ -373,12 +348,6 @@ void Menu::gotoParent(bool do_restore) {
             break;
         case Page::DrumCrosstalkDebounce:
             m_store->setCrosstalkDebounceMs(current_state.original_value);
-            break;
-        case Page::DrumAntiGhostDon:
-            m_store->setAntiGhostDonEnabled(static_cast<bool>(current_state.original_value));
-            break;
-        case Page::DrumAntiGhostKa:
-            m_store->setAntiGhostKaEnabled(static_cast<bool>(current_state.original_value));
             break;
         case Page::DrumTriggerThresholdKaLeft: {
             auto thresholds = m_store->getTriggerThresholds();
@@ -441,7 +410,6 @@ void Menu::gotoParent(bool do_restore) {
         case Page::Main:
         case Page::Drum:
         case Page::DrumDebounce:
-        case Page::DrumAntiGhosting:
         case Page::DrumTriggerThresholds:
         case Page::DrumDoubleTriggerThresholds:
         case Page::Led:
@@ -505,15 +473,6 @@ void Menu::performAction(Descriptor::Action action, uint16_t value) {
     case Descriptor::Action::GotoPageDrumCrosstalkDebounce:
         gotoPage(Page::DrumCrosstalkDebounce);
         break;
-    case Descriptor::Action::GotoPageDrumAntiGhosting:
-        gotoPage(Page::DrumAntiGhosting);
-        break;
-    case Descriptor::Action::GotoPageDrumAntiGhostDon:
-        gotoPage(Page::DrumAntiGhostDon);
-        break;
-    case Descriptor::Action::GotoPageDrumAntiGhostKa:
-        gotoPage(Page::DrumAntiGhostKa);
-        break;
     case Descriptor::Action::GotoPageDrumTriggerThresholdKaLeft:
         gotoPage(Page::DrumTriggerThresholdKaLeft);
         break;
@@ -561,12 +520,6 @@ void Menu::performAction(Descriptor::Action action, uint16_t value) {
         break;
     case Descriptor::Action::SetDrumCrosstalkDebounce:
         m_store->setCrosstalkDebounceMs(value);
-        break;
-    case Descriptor::Action::SetDrumAntiGhostDon:
-        m_store->setAntiGhostDonEnabled(static_cast<bool>(value));
-        break;
-    case Descriptor::Action::SetDrumAntiGhostKa:
-        m_store->setAntiGhostKaEnabled(static_cast<bool>(value));
         break;
     case Descriptor::Action::SetDoubleTriggerOff:
         m_store->setDoubleTriggerMode(Peripherals::Drum::Config::DoubleTriggerMode::Off);
