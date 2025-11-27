@@ -368,5 +368,3 @@ void Drum::setDoubleThresholds(const Config::Thresholds &thresholds) {
 }
 
 } // namespace Doncon::Peripherals
-
- 
