@@ -92,7 +92,7 @@ class Drum {
         uint8_t m_channel;
         uint32_t m_last_change{0};
         uint32_t m_last_trigger{0};
-        uint16_t m_last_adc_value{0};
+        int32_t m_last_adc_value{0};
 
         bool m_active{false};
         std::deque<analog_buffer_entry> m_analog_buffer;
@@ -100,13 +100,13 @@ class Drum {
       public:
         Pad(uint8_t channel);
 
-        [[nodiscard]] uint16_t getLastAdcValue() const { return m_last_adc_value; };
+        [[nodiscard]] int32_t getLastAdcValue() const { return m_last_adc_value; };
         [[nodiscard]] uint8_t getChannel() const { return m_channel; };
         [[nodiscard]] bool getState() const { return m_active; };
         [[nodiscard]] uint32_t getLastChange() const { return m_last_change; };
         [[nodiscard]] uint32_t getLastTrigger() const { return m_last_trigger; };
 
-        void setLastAdcValue(uint16_t value) { m_last_adc_value = value; };
+        void setLastAdcValue(int32_t value) { m_last_adc_value = value; };
         void setState(bool state, uint16_t debounce_delay);
         void trigger(uint16_t key_timeout);
         void updateTimeout(uint16_t key_timeout);
@@ -167,12 +167,12 @@ class Drum {
     RollCounter m_roll_counter;
     uint32_t m_global_debounce_time{0};
 
-    uint16_t last_don_time;
-    uint16_t last_kat_time;
+    uint32_t last_don_time;
+    uint32_t last_kat_time;
 
-    void updateDigitalInputState(Utils::InputState &input_state, const std::map<Id, uint16_t> &raw_values);
-    void updateAnalogInputState(Utils::InputState &input_state, const std::map<Id, uint16_t> &raw_values);
-    std::map<Id, uint16_t> readInputs();
+    void updateDigitalInputState(Utils::InputState &input_state, const std::map<Id, int32_t> &raw_values);
+    void updateAnalogInputState(Utils::InputState &input_state, const std::map<Id, int32_t> &raw_values);
+    std::map<Id, int32_t> readInputs();
     bool isGlobalDebounceElapsed() const;
     void updateGlobalDebounce();
     bool isAntiGhostOk(Id pad_id) const;

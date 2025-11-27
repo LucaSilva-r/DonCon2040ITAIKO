@@ -176,19 +176,19 @@ Drum::Drum(const Config &config) : m_config(config), m_roll_counter(config.roll_
         },
         m_config.adc_config);
 
+    m_pads.emplace(Id::DON_RIGHT, config.adc_channels.don_right);
     m_pads.emplace(Id::DON_LEFT, config.adc_channels.don_left);
     m_pads.emplace(Id::KA_LEFT, config.adc_channels.ka_left);
-    m_pads.emplace(Id::DON_RIGHT, config.adc_channels.don_right);
     m_pads.emplace(Id::KA_RIGHT, config.adc_channels.ka_right);
 }
-
-std::map<Drum::Id, uint16_t> Drum::readInputs() {
-    std::map<Id, uint16_t> result;
+jjjfdjj
+std::map<Drum::Id, int32_t> Drum::readInputs() {
+    std::map<Id, int32_t> result;
 
     const auto adc_values = m_adc->read();
 
     for (const auto &[id, pad] : m_pads) {
-        result[id] = adc_values.at(pad.getChannel());
+        result[id] = static_cast<int32_t>(adc_values.at(pad.getChannel()));
     }
 
     return result;
@@ -241,7 +241,7 @@ uint16_t Drum::getThreshold(const Id pad_id, const Config::Thresholds &threshold
     return 0;
 }
 
-void Drum::updateDigitalInputState(Utils::InputState &input_state, const std::map<Drum::Id, uint16_t> &raw_values) {
+void Drum::updateDigitalInputState(Utils::InputState &input_state, const std::map<Drum::Id, int32_t> &raw_values) {
     const uint32_t now = to_ms_since_boot(get_absolute_time());
     //const bool global_debounce_ok = isGlobalDebounceElapsed();
 
@@ -251,24 +251,21 @@ void Drum::updateDigitalInputState(Utils::InputState &input_state, const std::ma
         pad.updateTimeout(m_config.key_timeout_ms);
     }
 
-    // PHASE 2: Detect new hits - check each pad independently
-    bool any_triggered = false;
-
     for (const auto &[id, pad] : m_pads) {
         // Skip if pad is already active (key timeout not expired - ABSOLUTE)
 
-        const uint16_t adc_value = raw_values.at(id);
-        const uint16_t light_threshold = getThreshold(id, m_config.trigger_thresholds);
-        //const uint16_t heavy_threshold = getThreshold(id, m_config.double_trigger_thresholds);
-        const uint16_t last_adc_value = pad.getLastAdcValue();
+        const int32_t adc_value = raw_values.at(id);
+        const int32_t light_threshold = static_cast<int32_t>(getThreshold(id, m_config.trigger_thresholds));
+        //const int32_t heavy_threshold = static_cast<int32_t>(getThreshold(id, m_config.double_trigger_thresholds));
+        const int32_t last_adc_value = pad.getLastAdcValue();
 
         m_pads.at(id).setLastAdcValue(adc_value);
-    
+
         if (pad.getState()) {
             continue;
         }
 
-        // Check if above light threshold
+        // Check if above light threshold (signed arithmetic prevents underflow)
         if (adc_value - last_adc_value <= light_threshold) {
             continue;
         }
@@ -278,7 +275,6 @@ void Drum::updateDigitalInputState(Utils::InputState &input_state, const std::ma
         if (time_since_trigger <= m_config.key_timeout_ms) {
             continue;
         }
-
         // Check crosstalk between different pad types (Don-Ka)
         if (id == Id::DON_LEFT || id == Id::DON_RIGHT) {
             // Don pads: check same-type debounce AND crosstalk
@@ -296,7 +292,6 @@ void Drum::updateDigitalInputState(Utils::InputState &input_state, const std::ma
 
         // All checks passed - trigger the pad
         m_pads.at(id).trigger(m_config.key_timeout_ms);
-        any_triggered = true;
 
         // Update global timers AFTER successful trigger (matching aaaa.cpp)
         if (id == Id::DON_LEFT || id == Id::DON_RIGHT) {
@@ -304,13 +299,8 @@ void Drum::updateDigitalInputState(Utils::InputState &input_state, const std::ma
         } else {
             last_kat_time = now;
         }
-    }
+    }                          
 
-    // PHASE 3: Update global debounce if any hit occurred
-    if (any_triggered) {
-        updateGlobalDebounce();
-    }                               
-    
 
     // PHASE 5: Output to InputState
     input_state.drum.don_left.triggered = m_pads.at(Id::DON_LEFT).getState();
@@ -322,9 +312,9 @@ void Drum::updateDigitalInputState(Utils::InputState &input_state, const std::ma
     m_roll_counter.update(input_state);
 }
 
-void Drum::updateAnalogInputState(Utils::InputState &input_state, const std::map<Drum::Id, uint16_t> &raw_values) {
+void Drum::updateAnalogInputState(Utils::InputState &input_state, const std::map<Drum::Id, int32_t> &raw_values) {
     for (const auto &[id, raw] : raw_values) {
-        m_pads.at(id).setAnalog(raw, m_config.debounce_delay_ms);
+        m_pads.at(id).setAnalog(static_cast<uint16_t>(raw), m_config.debounce_delay_ms);
 
         switch (id) {
         case Id::DON_LEFT:
@@ -346,10 +336,10 @@ void Drum::updateAnalogInputState(Utils::InputState &input_state, const std::map
 void Drum::updateInputState(Utils::InputState &input_state) {
     const auto raw_values = readInputs();
 
-    input_state.drum.don_left.raw = raw_values.at(Id::DON_LEFT);
-    input_state.drum.don_right.raw = raw_values.at(Id::DON_RIGHT);
-    input_state.drum.ka_left.raw = raw_values.at(Id::KA_LEFT);
-    input_state.drum.ka_right.raw = raw_values.at(Id::KA_RIGHT);
+    input_state.drum.don_left.raw = static_cast<uint16_t>(raw_values.at(Id::DON_LEFT));
+    input_state.drum.don_right.raw = static_cast<uint16_t>(raw_values.at(Id::DON_RIGHT));
+    input_state.drum.ka_left.raw = static_cast<uint16_t>(raw_values.at(Id::KA_LEFT));
+    input_state.drum.ka_right.raw = static_cast<uint16_t>(raw_values.at(Id::KA_RIGHT));
 
     updateDigitalInputState(input_state, raw_values);
     updateAnalogInputState(input_state, raw_values);
