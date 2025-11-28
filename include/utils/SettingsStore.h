@@ -31,12 +31,14 @@ class SettingsStore {
         uint16_t kat_debounce;
         uint16_t crosstalk_debounce;
         uint16_t key_timeout_ms;
+        Peripherals::Drum::Config::WeightedComparisonMode weighted_comparison_mode;
 
         std::array<uint8_t, m_store_size - sizeof(uint8_t) - sizeof(usb_mode_t) -
                                 sizeof(Peripherals::Drum::Config::Thresholds) - sizeof(uint8_t) - sizeof(bool) -
                                 sizeof(uint16_t) - sizeof(Peripherals::Drum::Config::DoubleTriggerMode) -
                                 sizeof(Peripherals::Drum::Config::Thresholds) - sizeof(uint16_t) - sizeof(uint16_t) -
-                                sizeof(uint16_t) - sizeof(uint16_t)>
+                                sizeof(uint16_t) - sizeof(uint16_t) -
+                                sizeof(Peripherals::Drum::Config::WeightedComparisonMode)>
             _padding;
     };
     static_assert(sizeof(Storecache) == m_store_size);
@@ -88,6 +90,9 @@ class SettingsStore {
 
     void setKeyTimeoutMs(uint16_t ms);
     [[nodiscard]] uint16_t getKeyTimeoutMs() const;
+
+    void setWeightedComparisonMode(const Peripherals::Drum::Config::WeightedComparisonMode &mode);
+    [[nodiscard]] Peripherals::Drum::Config::WeightedComparisonMode getWeightedComparisonMode() const;
 
     void scheduleReboot(bool bootsel = false);
 

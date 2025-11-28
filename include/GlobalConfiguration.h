@@ -41,11 +41,13 @@ const Peripherals::Drum::Config drum_config = {
     .double_trigger_mode = Peripherals::Drum::Config::DoubleTriggerMode::Off,
     .double_trigger_thresholds =
         {
-            .don_left = 3000,                                                                                                                                                                                             
+            .don_left = 3000,
             .ka_left = 2500,
             .don_right = 3000,
             .ka_right = 2500,
         },
+
+    .weighted_comparison_mode = Peripherals::Drum::Config::WeightedComparisonMode::On,
 
     .debounce_delay_ms = 25,
     .don_debounce = 30,

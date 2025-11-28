@@ -50,10 +50,17 @@ class Drum {
             Threshold,
         };
 
+        enum class WeightedComparisonMode : uint8_t {
+            Off,
+            On,
+        };
+
         Thresholds trigger_thresholds;
 
         DoubleTriggerMode double_trigger_mode;
         Thresholds double_trigger_thresholds;
+
+        WeightedComparisonMode weighted_comparison_mode;
 
         uint16_t debounce_delay_ms;
         uint16_t don_debounce;
@@ -166,12 +173,26 @@ class Drum {
     uint32_t last_don_time;
     uint32_t last_kat_time;
 
+    struct WeightedComparisonState {
+        bool don_left_candidate = false;
+        bool don_right_candidate = false;
+        bool ka_left_candidate = false;
+        bool ka_right_candidate = false;
+
+        float don_left_ratio = 0.0f;
+        float don_right_ratio = 0.0f;
+        float ka_left_ratio = 0.0f;
+        float ka_right_ratio = 0.0f;
+    };
+
     void updateDigitalInputState(Utils::InputState &input_state, const std::map<Id, int32_t> &raw_values);
     void updateAnalogInputState(Utils::InputState &input_state, const std::map<Id, int32_t> &raw_values);
     std::map<Id, int32_t> readInputs();
     bool isGlobalDebounceElapsed() const;
     void updateGlobalDebounce();
     uint16_t getThreshold(Id pad_id, const Config::Thresholds &thresholds) const;
+    float calculateTriggerRatio(int32_t delta, uint16_t threshold) const;
+    void applyWeightedComparison(WeightedComparisonState& state);
 
   public:
     Drum(const Config &config);
@@ -186,6 +207,7 @@ class Drum {
     void setTriggerThresholds(const Config::Thresholds &thresholds);
     void setDoubleTriggerMode(Config::DoubleTriggerMode mode);
     void setDoubleThresholds(const Config::Thresholds &thresholds);
+    void setWeightedComparisonMode(Config::WeightedComparisonMode mode);
 };
 
 } // namespace Doncon::Peripherals

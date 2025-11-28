@@ -29,6 +29,7 @@ SettingsStore::SettingsStore()
                      .kat_debounce = Config::Default::drum_config.kat_debounce,
                      .crosstalk_debounce = Config::Default::drum_config.crosstalk_debounce,
                      .key_timeout_ms = Config::Default::drum_config.key_timeout_ms,
+                     .weighted_comparison_mode = Config::Default::drum_config.weighted_comparison_mode,
                      ._padding = {}}) {
     uint32_t current_page = m_flash_offset + m_flash_size - m_store_size;
     bool found_valid = false;
@@ -151,6 +152,16 @@ void SettingsStore::setKeyTimeoutMs(const uint16_t ms) {
     }
 }
 uint16_t SettingsStore::getKeyTimeoutMs() const { return m_store_cache.key_timeout_ms; }
+
+void SettingsStore::setWeightedComparisonMode(const Peripherals::Drum::Config::WeightedComparisonMode &mode) {
+    if (m_store_cache.weighted_comparison_mode != mode) {
+        m_store_cache.weighted_comparison_mode = mode;
+        m_dirty = true;
+    }
+}
+Peripherals::Drum::Config::WeightedComparisonMode SettingsStore::getWeightedComparisonMode() const {
+    return m_store_cache.weighted_comparison_mode;
+}
 
 void SettingsStore::store() {
     if (m_dirty) {

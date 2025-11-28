@@ -5,6 +5,7 @@
 #include <mcp3204/Mcp3204Dma.h>
 
 #include <algorithm>
+#include <cmath>
 
 namespace Doncon::Peripherals {
 
@@ -225,24 +226,23 @@ uint16_t Drum::getThreshold(const Id pad_id, const Config::Thresholds &threshold
 
 void Drum::updateDigitalInputState(Utils::InputState &input_state, const std::map<Drum::Id, int32_t> &raw_values) {
     const uint32_t now = to_ms_since_boot(get_absolute_time());
-    // const bool global_debounce_ok = isGlobalDebounceElapsed();
 
     // PHASE 1: Maintain existing button states (key timeout logic)
-    // Key timeout is ABSOLUTE - no pad can retrigger until timeout expires
     for (auto &[id, pad] : m_pads) {
         pad.updateTimeout(m_config.key_timeout_ms);
     }
 
-    // Track if ANY Don pad triggers in this cycle (for priority over all Ka)
-    bool any_don_triggered_this_cycle = false;
+    // Initialize weighted comparison state
+    WeightedComparisonState wc_state{};
 
-    // PHASE 2a: Process Don (face) pads FIRST - they get priority
+    // PHASE 2a: Collect Don candidates
     for (const auto &id : {Id::DON_LEFT, Id::DON_RIGHT}) {
         const auto &pad = m_pads.at(id);
 
         const int32_t adc_value = raw_values.at(id);
         const int32_t light_threshold = static_cast<int32_t>(getThreshold(id, m_config.trigger_thresholds));
         const int32_t last_adc_value = pad.getLastAdcValue();
+        const int32_t delta = adc_value - last_adc_value;
 
         m_pads.at(id).setLastAdcValue(adc_value);
 
@@ -250,12 +250,12 @@ void Drum::updateDigitalInputState(Utils::InputState &input_state, const std::ma
             continue;
         }
 
-        // Check if above light threshold (signed arithmetic prevents underflow)
-        if (adc_value - last_adc_value <= light_threshold) {
+        // Check if above light threshold
+        if (delta <= light_threshold) {
             continue;
         }
 
-        // Per-sensor debounce check (individual pad retrigger delay)
+        // Per-sensor debounce check
         const uint32_t time_since_trigger = now - pad.getLastTrigger();
         if (time_since_trigger <= m_config.key_timeout_ms) {
             continue;
@@ -266,19 +266,26 @@ void Drum::updateDigitalInputState(Utils::InputState &input_state, const std::ma
             continue;
         }
 
-        // All checks passed - trigger the Don pad
-        m_pads.at(id).trigger(m_config.key_timeout_ms);
-        last_don_time = now;
-        any_don_triggered_this_cycle = true; // Any Don trigger blocks all Ka
+        // Mark as candidate instead of triggering immediately
+        const float ratio = calculateTriggerRatio(delta, light_threshold);
+
+        if (id == Id::DON_LEFT) {
+            wc_state.don_left_candidate = true;
+            wc_state.don_left_ratio = ratio;
+        } else {
+            wc_state.don_right_candidate = true;
+            wc_state.don_right_ratio = ratio;
+        }
     }
 
-    // PHASE 2b: Process Ka (rim) pads SECOND - they are suppressed if ANY Don triggered
+    // PHASE 2b: Collect Ka candidates
     for (const auto &id : {Id::KA_LEFT, Id::KA_RIGHT}) {
         const auto &pad = m_pads.at(id);
 
         const int32_t adc_value = raw_values.at(id);
         const int32_t light_threshold = static_cast<int32_t>(getThreshold(id, m_config.trigger_thresholds));
         const int32_t last_adc_value = pad.getLastAdcValue();
+        const int32_t delta = adc_value - last_adc_value;
 
         m_pads.at(id).setLastAdcValue(adc_value);
 
@@ -286,12 +293,12 @@ void Drum::updateDigitalInputState(Utils::InputState &input_state, const std::ma
             continue;
         }
 
-        // Check if above light threshold (signed arithmetic prevents underflow)
-        if (adc_value - last_adc_value <= light_threshold) {
+        // Check if above light threshold
+        if (delta <= light_threshold) {
             continue;
         }
 
-        // Per-sensor debounce check (individual pad retrigger delay)
+        // Per-sensor debounce check
         const uint32_t time_since_trigger = now - pad.getLastTrigger();
         if (time_since_trigger <= m_config.key_timeout_ms) {
             continue;
@@ -302,13 +309,43 @@ void Drum::updateDigitalInputState(Utils::InputState &input_state, const std::ma
             continue;
         }
 
-        // PRIORITY CHECK: If ANY Don pad triggered this cycle, suppress all Ka
-        if (any_don_triggered_this_cycle) {
-            continue; // Don has priority - suppress all Ka triggers
+        // PRIORITY CHECK: If ANY Don candidate exists, suppress all Ka
+        if (wc_state.don_left_candidate || wc_state.don_right_candidate) {
+            continue;
         }
 
-        // All checks passed - trigger the Ka pad
-        m_pads.at(id).trigger(m_config.key_timeout_ms);
+        // Mark as candidate instead of triggering immediately
+        const float ratio = calculateTriggerRatio(delta, light_threshold);
+
+        if (id == Id::KA_LEFT) {
+            wc_state.ka_left_candidate = true;
+            wc_state.ka_left_ratio = ratio;
+        } else {
+            wc_state.ka_right_candidate = true;
+            wc_state.ka_right_ratio = ratio;
+        }
+    }
+
+    // PHASE 3: Apply weighted comparison (only if enabled)
+    if (m_config.weighted_comparison_mode == Config::WeightedComparisonMode::On) {
+        applyWeightedComparison(wc_state);
+    }
+
+    // PHASE 4: Trigger surviving candidates
+    if (wc_state.don_left_candidate) {
+        m_pads.at(Id::DON_LEFT).trigger(m_config.key_timeout_ms);
+        last_don_time = now;
+    }
+    if (wc_state.don_right_candidate) {
+        m_pads.at(Id::DON_RIGHT).trigger(m_config.key_timeout_ms);
+        last_don_time = now;
+    }
+    if (wc_state.ka_left_candidate) {
+        m_pads.at(Id::KA_LEFT).trigger(m_config.key_timeout_ms);
+        last_kat_time = now;
+    }
+    if (wc_state.ka_right_candidate) {
+        m_pads.at(Id::KA_RIGHT).trigger(m_config.key_timeout_ms);
         last_kat_time = now;
     }
 
@@ -371,6 +408,45 @@ void Drum::setDoubleTriggerMode(const Config::DoubleTriggerMode mode) { m_config
 
 void Drum::setDoubleThresholds(const Config::Thresholds &thresholds) {
     m_config.double_trigger_thresholds = thresholds;
+}
+
+void Drum::setWeightedComparisonMode(const Config::WeightedComparisonMode mode) {
+    m_config.weighted_comparison_mode = mode;
+}
+
+float Drum::calculateTriggerRatio(const int32_t delta, const uint16_t threshold) const {
+    if (threshold == 0) {
+        return 0.0f;
+    }
+    return static_cast<float>(delta) / static_cast<float>(threshold);
+}
+
+void Drum::applyWeightedComparison(WeightedComparisonState &state) {
+    // constexpr float EPSILON = 0.01f; // 1% tie threshold
+
+    // Compare Don pair (only if BOTH candidates)
+    if (state.don_left_candidate && state.don_right_candidate) {
+        // if (std::abs(state.don_left_ratio - state.don_right_ratio) > EPSILON) {
+        if (state.don_left_ratio > state.don_right_ratio) {
+            state.don_right_candidate = false;
+        } else {
+            state.don_left_candidate = false;
+        }
+        //}
+        // If within epsilon, both remain candidates
+    }
+
+    // Compare Ka pair (only if BOTH candidates)
+    if (state.ka_left_candidate && state.ka_right_candidate) {
+        // if (std::abs(state.ka_left_ratio - state.ka_right_ratio) > EPSILON) {
+        if (state.ka_left_ratio > state.ka_right_ratio) {
+            state.ka_right_candidate = false;
+        } else {
+            state.ka_left_candidate = false;
+        }
+        //}
+        // If within epsilon, both remain candidates
+    }
 }
 
 } // namespace Doncon::Peripherals
