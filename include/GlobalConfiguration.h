@@ -38,7 +38,7 @@ const Peripherals::Drum::Config drum_config = {
             .ka_right = 800,
         },
 
-    .double_trigger_mode = Peripherals::Drum::Config::DoubleTriggerMode::Threshold,
+    .double_trigger_mode = Peripherals::Drum::Config::DoubleTriggerMode::Off,
     .double_trigger_thresholds =
         {
             .don_left = 3000,                                                                                                                                                                                             

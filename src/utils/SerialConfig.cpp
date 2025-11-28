@@ -151,7 +151,7 @@ uint16_t SerialConfig::getSettingByKey(int key) {
         return m_settings_store.getKeyTimeoutMs();
     case 8: // Debounce Delay (A delay - single hit acceptance time)
         return m_settings_store.getDebounceDelay();
-    case 9: // Double Trigger Mode (0=Off, 1=Threshold, 2=Always)
+    case 9: // Double Trigger Mode (0=Off, 1=Threshold)
         return static_cast<uint16_t>(m_settings_store.getDoubleTriggerMode());
     case 10: // Double Trigger Don Left Threshold
         return m_settings_store.getDoubleTriggerThresholds().don_left;

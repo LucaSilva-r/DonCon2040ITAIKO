@@ -26,14 +26,13 @@ std::array<uint16_t, 4> Drum::InternalAdc::read() {
     std::array<uint16_t, 4> result{};
 
     // Oversample ADC inputs to get rid of ADC noise
-    //std::array<uint32_t, 4> values{};
-    
-    for(int i = 0; i < 4; i++){
+    // std::array<uint32_t, 4> values{};
+
+    for (int i = 0; i < 4; i++) {
         adc_select_input(i);
         result.at(i) = adc_read();
     }
 
-    
     // for (uint8_t sample_number = 0; sample_number < m_config.sample_count; ++sample_number) {
     //     for (size_t idx = 0; idx < values.size(); ++idx) {
     //         adc_select_input(idx);
@@ -42,7 +41,8 @@ std::array<uint16_t, 4> Drum::InternalAdc::read() {
     // }
 
     // // Take average of all samples
-    // std::ranges::transform(values, result.begin(), [&](const auto &sample) { return sample / m_config.sample_count; });
+    // std::ranges::transform(values, result.begin(), [&](const auto &sample) { return sample / m_config.sample_count;
+    // });
 
     return result;
 }
@@ -97,7 +97,6 @@ void Drum::Pad::trigger(const uint16_t key_timeout) {
 
 void Drum::Pad::updateTimeout(const uint16_t key_timeout) {
 
-    
     if (!m_active) {
         return; // Not currently pressed
     }
@@ -226,7 +225,7 @@ uint16_t Drum::getThreshold(const Id pad_id, const Config::Thresholds &threshold
 
 void Drum::updateDigitalInputState(Utils::InputState &input_state, const std::map<Drum::Id, int32_t> &raw_values) {
     const uint32_t now = to_ms_since_boot(get_absolute_time());
-    //const bool global_debounce_ok = isGlobalDebounceElapsed();
+    // const bool global_debounce_ok = isGlobalDebounceElapsed();
 
     // PHASE 1: Maintain existing button states (key timeout logic)
     // Key timeout is ABSOLUTE - no pad can retrigger until timeout expires
@@ -263,8 +262,7 @@ void Drum::updateDigitalInputState(Utils::InputState &input_state, const std::ma
         }
 
         // Don pads: check same-type debounce AND crosstalk
-        if (now - last_don_time < m_config.don_debounce ||
-             now - last_kat_time <= m_config.crosstalk_debounce) {
+        if (now - last_don_time < m_config.don_debounce || now - last_kat_time <= m_config.crosstalk_debounce) {
             continue;
         }
 
@@ -300,8 +298,7 @@ void Drum::updateDigitalInputState(Utils::InputState &input_state, const std::ma
         }
 
         // Ka pads: check same-type debounce AND crosstalk
-        if (now - last_kat_time < m_config.kat_debounce ||
-             now - last_don_time <= m_config.crosstalk_debounce) {
+        if (now - last_kat_time < m_config.kat_debounce || now - last_don_time <= m_config.crosstalk_debounce) {
             continue;
         }
 
@@ -313,8 +310,7 @@ void Drum::updateDigitalInputState(Utils::InputState &input_state, const std::ma
         // All checks passed - trigger the Ka pad
         m_pads.at(id).trigger(m_config.key_timeout_ms);
         last_kat_time = now;
-    }                          
-
+    }
 
     // PHASE 5: Output to InputState
     input_state.drum.don_left.triggered = m_pads.at(Id::DON_LEFT).getState();

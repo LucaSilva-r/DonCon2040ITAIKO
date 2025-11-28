@@ -107,7 +107,6 @@ class Menu {
             SetDrumKeyTimeout,
 
             SetDoubleTriggerOff,
-            SetDoubleTriggerAlways,
 
             SetDrumTriggerThresholdKaLeft,
             SetDrumTriggerThresholdDonLeft,

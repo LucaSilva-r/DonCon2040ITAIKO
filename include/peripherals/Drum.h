@@ -48,7 +48,6 @@ class Drum {
         enum class DoubleTriggerMode : uint8_t {
             Off,
             Threshold,
-            Always,
         };
 
         Thresholds trigger_thresholds;

@@ -36,7 +36,7 @@ namespace Doncon::Utils {
  * 8: Debounce Delay - A delay (Key hold time)
  *
  * Extended Keys (DonCon2040-specific, not in hidtaiko):
- * 9: Double Trigger Mode (0=Off, 1=Threshold, 2=Always)
+ * 9: Double Trigger Mode (0=Off, 1=Threshold)
  * 10: Double Trigger Don Left Threshold
  * 11: Double Trigger Ka Left Threshold
  * 12: Double Trigger Don Right Threshold

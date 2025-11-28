@@ -525,10 +525,6 @@ void Menu::performAction(Descriptor::Action action, uint16_t value) {
         m_store->setDoubleTriggerMode(Peripherals::Drum::Config::DoubleTriggerMode::Off);
         gotoParent(false);
         break;
-    case Descriptor::Action::SetDoubleTriggerAlways:
-        m_store->setDoubleTriggerMode(Peripherals::Drum::Config::DoubleTriggerMode::Always);
-        gotoParent(false);
-        break;
     case Descriptor::Action::SetDrumTriggerThresholdKaLeft: {
         auto thresholds = m_store->getTriggerThresholds();
 

@@ -90,20 +90,20 @@ class DrumVisualWidget(QWidget):
         # Current trigger states for each pad
         self.triggered = [False, False, False, False]  # Ka_L, Don_L, Don_R, Ka_R
 
-        # Colors for each pad (same as PADS in DrumMonitor)
+        # Colors matching real Taiko no Tatsujin
         self.colors = {
-            'ka_left': QColor(255, 100, 100),      # Red
-            'don_left': QColor(100, 100, 255),     # Blue
-            'don_right': QColor(100, 255, 100),    # Green
-            'ka_right': QColor(255, 200, 100)      # Orange
+            'ka_left': QColor(107, 189, 198),      # Katsu cyan (active)
+            'don_left': QColor(255, 66, 33),       # Don red (active)
+            'don_right': QColor(255, 66, 33),      # Don red (active)
+            'ka_right': QColor(107, 189, 198)      # Katsu cyan (active)
         }
 
-        # Dim colors for non-triggered state
+        # Dim colors for non-triggered state (darkened by ~70%)
         self.dim_colors = {
-            'ka_left': QColor(80, 30, 30),
-            'don_left': QColor(30, 30, 80),
-            'don_right': QColor(30, 80, 30),
-            'ka_right': QColor(80, 60, 30)
+            'ka_left': QColor(32, 57, 59),         # Katsu cyan (dim)
+            'don_left': QColor(77, 20, 10),        # Don red (dim)
+            'don_right': QColor(77, 20, 10),       # Don red (dim)
+            'ka_right': QColor(32, 57, 59)         # Katsu cyan (dim)
         }
 
     def set_trigger_states(self, ka_left, don_left, don_right, ka_right):
@@ -220,6 +220,7 @@ class DrumMonitor(QMainWindow):
 
         # Thresholds for visual reference (can be adjusted in UI)
         self.thresholds = [450, 350, 350, 450]  # Ka_L, Don_L, Don_R, Ka_R
+        self.heavy_thresholds = [900, 700, 700, 900]  # Ka_L, Don_L, Don_R, Ka_R (heavy/double trigger)
 
         # Configuration widgets (created in create_config_panel)
         self.config_widgets = {}
@@ -278,12 +279,6 @@ class DrumMonitor(QMainWindow):
         # Create Visual Drum tab
         visual_tab = QWidget()
         visual_layout = QVBoxLayout(visual_tab)
-
-        # Add instruction label
-        info_label = QLabel("Real-time visual drum display - shows trigger states from serial data")
-        info_label.setAlignment(Qt.AlignCenter)
-        info_label.setStyleSheet("font-size: 12pt; padding: 10px;")
-        visual_layout.addWidget(info_label)
 
         # Add the drum visual widget (centered at top)
         self.drum_visual = DrumVisualWidget()
@@ -430,7 +425,7 @@ class DrumMonitor(QMainWindow):
         double_layout = QFormLayout()
 
         self.config_widgets[9] = QComboBox()  # Double Trigger Mode
-        self.config_widgets[9].addItems(["Off", "Threshold", "Always"])
+        self.config_widgets[9].addItems(["Off", "Threshold"])
         self.config_widgets[9].setCurrentIndex(0)
         self.config_widgets[9].currentIndexChanged.connect(self.on_double_mode_changed)
         double_layout.addRow("Double Trigger Mode:", self.config_widgets[9])
@@ -490,6 +485,7 @@ class DrumMonitor(QMainWindow):
         self.curves = []
         self.delta_curves = []
         self.threshold_lines = []
+        self.heavy_threshold_lines = []
 
         for i, (name, color) in enumerate(self.PADS):
             # Create plot
@@ -507,14 +503,23 @@ class DrumMonitor(QMainWindow):
             delta_color = (color[0] // 2 + 127, color[1] // 2 + 127, color[2] // 2 + 127)  # Lighter version
             delta_curve = plot.plot(pen=pg.mkPen(color=delta_color, width=1, style=Qt.DotLine))
 
-            # Add threshold line
+            # Add light threshold line (yellow)
             threshold_line = pg.InfiniteLine(
                 pos=self.thresholds[i],
                 angle=0,
                 pen=pg.mkPen(color=(255, 255, 0), width=2, style=Qt.DashLine),
-                label=f'Threshold: {self.thresholds[i]}'
+                label=f'Light: {self.thresholds[i]}'
             )
             plot.addItem(threshold_line)
+
+            # Add heavy threshold line (orange)
+            heavy_threshold_line = pg.InfiniteLine(
+                pos=self.heavy_thresholds[i],
+                angle=0,
+                pen=pg.mkPen(color=(255, 165, 0), width=2, style=Qt.DashLine),
+                label=f'Heavy: {self.heavy_thresholds[i]}'
+            )
+            plot.addItem(heavy_threshold_line)
 
             # Add legend
             plot.addLegend()
@@ -525,6 +530,7 @@ class DrumMonitor(QMainWindow):
             self.curves.append(curve)
             self.delta_curves.append(delta_curve)
             self.threshold_lines.append(threshold_line)
+            self.heavy_threshold_lines.append(heavy_threshold_line)
 
     def refresh_ports(self):
         """Refresh the list of available serial ports"""
@@ -634,6 +640,11 @@ class DrumMonitor(QMainWindow):
             self.log_file.close()
             self.log_file = None
             self.csv_writer = None
+
+    def on_plot_rate_changed(self, value):
+        """Update plot timer interval when user changes the refresh rate"""
+        if self.is_running:
+            self.plot_timer.setInterval(value)
 
     def update_buffer_size(self, new_size):
         """Update the buffer size for data history"""
@@ -795,12 +806,19 @@ class DrumMonitor(QMainWindow):
                     else:  # Spinboxes
                         self.config_widgets[key].setValue(value)
 
-            # Update threshold lines on graphs
+            # Update light threshold lines on graphs
             if 0 in settings and 1 in settings and 2 in settings and 3 in settings:
                 self.thresholds = [settings[1], settings[0], settings[2], settings[3]]  # Ka_L, Don_L, Don_R, Ka_R
                 for i, threshold_line in enumerate(self.threshold_lines):
                     threshold_line.setValue(self.thresholds[i])
-                    threshold_line.label.setFormat(f'Threshold: {self.thresholds[i]}')
+                    threshold_line.label.setFormat(f'Light: {self.thresholds[i]}')
+
+            # Update heavy threshold lines on graphs
+            if 10 in settings and 11 in settings and 12 in settings and 13 in settings:
+                self.heavy_thresholds = [settings[11], settings[10], settings[12], settings[13]]  # Ka_L, Don_L, Don_R, Ka_R
+                for i, heavy_threshold_line in enumerate(self.heavy_threshold_lines):
+                    heavy_threshold_line.setValue(self.heavy_thresholds[i])
+                    heavy_threshold_line.label.setFormat(f'Heavy: {self.heavy_thresholds[i]}')
 
             self.statusBar().showMessage(f"Read {len(settings)} settings from device")
 
@@ -824,11 +842,17 @@ class DrumMonitor(QMainWindow):
 
             self.config_helper.write_settings(settings)
 
-            # Update threshold lines on graphs
+            # Update light threshold lines on graphs
             self.thresholds = [settings[1], settings[0], settings[2], settings[3]]  # Ka_L, Don_L, Don_R, Ka_R
             for i, threshold_line in enumerate(self.threshold_lines):
                 threshold_line.setValue(self.thresholds[i])
-                threshold_line.label.setFormat(f'Threshold: {self.thresholds[i]}')
+                threshold_line.label.setFormat(f'Light: {self.thresholds[i]}')
+
+            # Update heavy threshold lines on graphs
+            self.heavy_thresholds = [settings[11], settings[10], settings[12], settings[13]]  # Ka_L, Don_L, Don_R, Ka_R
+            for i, heavy_threshold_line in enumerate(self.heavy_threshold_lines):
+                heavy_threshold_line.setValue(self.heavy_thresholds[i])
+                heavy_threshold_line.label.setFormat(f'Heavy: {self.heavy_thresholds[i]}')
 
             # Automatically save to flash after writing
             self.config_helper.save_to_flash()
