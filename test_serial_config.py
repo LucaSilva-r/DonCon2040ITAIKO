@@ -39,7 +39,7 @@ class SerialConfig:
         6: "Crosstalk Debounce / D delay (ms)",
         7: "Key Timeout / H delay (ms)",
         8: "Debounce Delay / A delay - key hold time (ms)",
-        9: "Double Trigger Mode (0=Off, 1=Threshold, 2=Always)",
+        9: "Double Trigger Mode (0=Off, 1=Threshold)",
         10: "Double Trigger Don Left Threshold",
         11: "Double Trigger Ka Left Threshold",
         12: "Double Trigger Don Right Threshold",
