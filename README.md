@@ -74,7 +74,6 @@ Home versions of Taiko no Tatsujin give higher scores for large notes when both 
 
 - **Off**: Hit both sides to score large notes.
 - **Threshold**: Automatically trigger both sides if a hit is stronger than the configured double hit threshold.
-- **Always**: A hit on one side will always trigger the other side as well.
 
 ### PS4 Authentication
 

@@ -46,7 +46,7 @@ The system uses a simple command-based protocol similar to hidtaiko's web config
 
 | Key | Setting | Type | Description |
 |-----|---------|------|-------------|
-| 9 | Double Trigger Mode | uint16 | 0=Off, 1=Threshold, 2=Always |
+| 9 | Double Trigger Mode | uint16 | 0=Off, 1=Threshold |
 | 10 | Double Trigger Don Left | uint32 | Left face double trigger threshold |
 | 11 | Double Trigger Ka Left | uint32 | Left rim double trigger threshold |
 | 12 | Double Trigger Don Right | uint32 | Right face double trigger threshold |
