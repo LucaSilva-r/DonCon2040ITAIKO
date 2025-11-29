@@ -11,10 +11,10 @@ char s_serial_buf[256];
 uint32_t s_serial_buf_idx = 0;
 } // namespace
 
-SerialConfig::SerialConfig(SettingsStore &settings_store)
-    : m_settings_store(settings_store), m_write_mode(false), m_write_count(0), m_streaming_mode(false),
-      m_last_stream_time(0), m_don_left_sum(0), m_ka_left_sum(0), m_don_right_sum(0), m_ka_right_sum(0),
-      m_sample_count(0) {}
+SerialConfig::SerialConfig(SettingsStore &settings_store, SettingsAppliedCallback on_settings_applied)
+    : m_settings_store(settings_store), m_on_settings_applied(on_settings_applied), m_write_mode(false),
+      m_write_count(0), m_streaming_mode(false), m_last_stream_time(0), m_don_left_sum(0), m_ka_left_sum(0),
+      m_don_right_sum(0), m_ka_right_sum(0), m_sample_count(0) {}
 
 void SerialConfig::processSerial() {
     if (!tud_cdc_connected()) {
@@ -115,6 +115,11 @@ void SerialConfig::handleWriteData(const char *data) {
     if (m_write_count > 0) {
         m_write_mode = false;
         m_write_count = 0;
+
+        // Apply settings to Drum object by calling callback
+        if (m_on_settings_applied) {
+            m_on_settings_applied();
+        }
     }
 }
 

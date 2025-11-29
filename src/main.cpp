@@ -182,7 +182,7 @@ int main() {
     };
 
     Utils::Menu menu(settings_store);
-    Utils::SerialConfig serial_config(*settings_store);
+    Utils::SerialConfig serial_config(*settings_store, readSettings);
 
     std::array<uint8_t, Utils::PS4AuthProvider::SIGNATURE_LENGTH> auth_challenge_response{};
     if (Config::PS4Auth::config.enabled) {

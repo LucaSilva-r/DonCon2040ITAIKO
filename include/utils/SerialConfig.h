@@ -7,6 +7,8 @@
 #include "pico/stdlib.h"
 #include "tusb.h"
 
+#include <functional>
+
 namespace Doncon::Utils {
 
 /**
@@ -44,7 +46,9 @@ namespace Doncon::Utils {
  */
 class SerialConfig {
   public:
-    explicit SerialConfig(SettingsStore &settings_store);
+    using SettingsAppliedCallback = std::function<void()>;
+
+    explicit SerialConfig(SettingsStore &settings_store, SettingsAppliedCallback on_settings_applied = nullptr);
 
     /**
      * @brief Process incoming serial data
@@ -66,6 +70,7 @@ class SerialConfig {
 
   private:
     SettingsStore &m_settings_store;
+    SettingsAppliedCallback m_on_settings_applied;
     bool m_write_mode;
     int m_write_count;
     bool m_streaming_mode;
