@@ -271,7 +271,12 @@ void Drum::updateDigitalInputState(Utils::InputState &input_state, const std::ma
         }
 
         // Don pads: check same-type debounce AND crosstalk
-        if (now - last_don_time < m_config.don_debounce || now - last_kat_time <= m_config.crosstalk_debounce) {
+        const bool is_hard_hit =
+            m_config.double_trigger_mode != Config::DoubleTriggerMode::Off &&
+            delta > static_cast<int32_t>(getThreshold(id, m_config.double_trigger_thresholds));
+
+        if ((now - last_don_time < m_config.don_debounce && !is_hard_hit) ||
+            now - last_kat_time <= m_config.crosstalk_debounce) {
             continue;
         }
 
@@ -314,7 +319,12 @@ void Drum::updateDigitalInputState(Utils::InputState &input_state, const std::ma
         }
 
         // Ka pads: check same-type debounce AND crosstalk
-        if (now - last_kat_time < m_config.kat_debounce || now - last_don_time <= m_config.crosstalk_debounce) {
+        const bool is_hard_hit =
+            m_config.double_trigger_mode != Config::DoubleTriggerMode::Off &&
+            delta > static_cast<int32_t>(getThreshold(id, m_config.double_trigger_thresholds));
+
+        if ((now - last_kat_time < m_config.kat_debounce && !is_hard_hit) ||
+            now - last_don_time <= m_config.crosstalk_debounce) {
             continue;
         }
 
