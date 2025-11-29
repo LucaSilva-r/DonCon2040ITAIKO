@@ -214,6 +214,7 @@ class DrumMonitor(QMainWindow):
         self.pad_data = [deque(maxlen=self.buffer_size) for _ in range(4)]
         self.trigger_data = [deque(maxlen=self.buffer_size) for _ in range(4)]
         self.delta_data = [deque(maxlen=self.buffer_size) for _ in range(4)]  # Delta values
+        self.trigger_duration_data = [deque(maxlen=self.buffer_size) for _ in range(4)]  # Trigger duration
 
         # Track last raw values for delta calculation
         self.last_raw_values = [0, 0, 0, 0]
@@ -484,6 +485,7 @@ class DrumMonitor(QMainWindow):
         self.plots = []
         self.curves = []
         self.delta_curves = []
+        self.trigger_duration_curves = []
         self.threshold_lines = []
         self.heavy_threshold_lines = []
 
@@ -502,6 +504,10 @@ class DrumMonitor(QMainWindow):
             # Create curve for delta values (difference from last sample)
             delta_color = (color[0] // 2 + 127, color[1] // 2 + 127, color[2] // 2 + 127)  # Lighter version
             delta_curve = plot.plot(pen=pg.mkPen(color=delta_color, width=1, style=Qt.DotLine))
+
+            # Create curve for trigger duration (how long the trigger has been held)
+            duration_color = (255, 255, 255)  # White for visibility
+            trigger_duration_curve = plot.plot(pen=pg.mkPen(color=duration_color, width=3, style=Qt.SolidLine))
 
             # Add light threshold line (yellow)
             threshold_line = pg.InfiniteLine(
@@ -525,10 +531,12 @@ class DrumMonitor(QMainWindow):
             plot.addLegend()
             plot.legend.addItem(curve, "Raw ADC")
             plot.legend.addItem(delta_curve, "Delta (trigger logic)")
+            plot.legend.addItem(trigger_duration_curve, "Trigger Duration (ms)")
 
             self.plots.append(plot)
             self.curves.append(curve)
             self.delta_curves.append(delta_curve)
+            self.trigger_duration_curves.append(trigger_duration_curve)
             self.threshold_lines.append(threshold_line)
             self.heavy_threshold_lines.append(heavy_threshold_line)
 
@@ -654,6 +662,7 @@ class DrumMonitor(QMainWindow):
             self.pad_data[i] = deque(self.pad_data[i], maxlen=new_size)
             self.trigger_data[i] = deque(self.trigger_data[i], maxlen=new_size)
             self.delta_data[i] = deque(self.delta_data[i], maxlen=new_size)
+            self.trigger_duration_data[i] = deque(self.trigger_duration_data[i], maxlen=new_size)
 
     def clear_data(self):
         """Clear all data buffers"""
@@ -662,6 +671,7 @@ class DrumMonitor(QMainWindow):
             self.pad_data[i].clear()
             self.trigger_data[i].clear()
             self.delta_data[i].clear()
+            self.trigger_duration_data[i].clear()
         self.last_raw_values = [0, 0, 0, 0]
         self.time_counter = 0
 
@@ -682,16 +692,17 @@ class DrumMonitor(QMainWindow):
                 if line.startswith('['):
                     continue
 
-                # Parse CSV format: T/F,raw,T/F,raw,T/F,raw,T/F,raw
+                # Parse CSV format: T/F,raw,duration,T/F,raw,duration,T/F,raw,duration,T/F,raw,duration
                 parts = line.split(',')
 
-                if len(parts) != 8:
+                if len(parts) != 12:
                     continue  # Skip malformed lines
 
-                # Parse triggered states and raw values
+                # Parse triggered states, raw values, and durations
                 try:
-                    triggered = [parts[i] == 'T' for i in range(0, 8, 2)]
-                    raw_values = [int(parts[i]) for i in range(1, 8, 2)]
+                    triggered = [parts[i] == 'T' for i in range(0, 12, 3)]
+                    raw_values = [int(parts[i]) for i in range(1, 12, 3)]
+                    trigger_durations = [int(parts[i]) for i in range(2, 12, 3)]
                 except (ValueError, IndexError):
                     continue  # Skip if parsing fails
 
@@ -702,12 +713,15 @@ class DrumMonitor(QMainWindow):
                     delta_values.append(max(0, delta))  # Clamp negative deltas to 0 for visualization
                     self.last_raw_values[i] = raw_values[i]
 
+                # Trigger durations are now provided by firmware (already parsed above)
+
                 # Add to buffers
                 self.time_data.append(self.time_counter)
                 for i in range(4):
                     self.pad_data[i].append(raw_values[i])
                     self.trigger_data[i].append(triggered[i])
                     self.delta_data[i].append(delta_values[i])
+                    self.trigger_duration_data[i].append(trigger_durations[i])
 
                 self.time_counter += 1
 
@@ -748,6 +762,9 @@ class DrumMonitor(QMainWindow):
 
                 # Update delta curve
                 self.delta_curves[i].setData(time_array, list(self.delta_data[i]))
+
+                # Update trigger duration curve
+                self.trigger_duration_curves[i].setData(time_array, list(self.trigger_duration_data[i]))
 
                 # Update plot line width if triggered (make it thicker/more visible)
                 color = self.PADS[i][1]

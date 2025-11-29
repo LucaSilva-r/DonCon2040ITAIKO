@@ -12,6 +12,7 @@ struct InputState {
             bool triggered;
             uint16_t analog;
             uint16_t raw;
+            uint32_t duration_ms;
         };
 
         Pad don_left, ka_left, don_right, ka_right;

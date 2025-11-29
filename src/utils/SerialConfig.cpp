@@ -232,12 +232,12 @@ void SerialConfig::sendSensorData(const InputState &input_state, uint16_t ka_l, 
     const auto &drum = input_state.drum;
 
     // CSV format:
-    // triggered_ka_left,ka_raw,triggered_don_left,don_left_raw,triggered_don_right,don_right_raw,triggered_ka_right,ka_right_raw
-    printf("%c,%d,%c,%d,%c,%d,%c,%d\n",                           //
-           (drum.ka_left.triggered ? 'T' : 'F'), ka_l,   //
-           (drum.don_left.triggered ? 'T' : 'F'), don_l, //
-           (drum.don_right.triggered ? 'T' : 'F'), don_r,   //
-           (drum.ka_right.triggered ? 'T' : 'F'), ka_r);
+    // triggered_ka_left,ka_raw,ka_duration,triggered_don_left,don_left_raw,don_left_duration,triggered_don_right,don_right_raw,don_right_duration,triggered_ka_right,ka_right_raw,ka_right_duration
+    printf("%c,%d,%lu,%c,%d,%lu,%c,%d,%lu,%c,%d,%lu\n",                           //
+           (drum.ka_left.triggered ? 'T' : 'F'), ka_l, drum.ka_left.duration_ms,   //
+           (drum.don_left.triggered ? 'T' : 'F'), don_l, drum.don_left.duration_ms, //
+           (drum.don_right.triggered ? 'T' : 'F'), don_r, drum.don_right.duration_ms,   //
+           (drum.ka_right.triggered ? 'T' : 'F'), ka_r, drum.ka_right.duration_ms);
     stdio_flush();
 }
 

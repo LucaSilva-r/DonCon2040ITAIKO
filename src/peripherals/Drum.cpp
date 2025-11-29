@@ -111,6 +111,15 @@ void Drum::Pad::updateTimeout(const uint16_t key_timeout) {
     }
 }
 
+uint32_t Drum::Pad::getTriggerDuration() const {
+    if (!m_active) {
+        return 0;
+    }
+
+    const uint32_t now = to_ms_since_boot(get_absolute_time());
+    return now - m_last_trigger;
+}
+
 uint16_t Drum::Pad::getAnalog() {
     const auto raw_to_uint16 = [](uint16_t raw) { return ((raw << 4) & 0xFFF0) | ((raw >> 8) & 0x000F); };
 
@@ -351,9 +360,13 @@ void Drum::updateDigitalInputState(Utils::InputState &input_state, const std::ma
 
     // PHASE 5: Output to InputState
     input_state.drum.don_left.triggered = m_pads.at(Id::DON_LEFT).getState();
+    input_state.drum.don_left.duration_ms = m_pads.at(Id::DON_LEFT).getTriggerDuration();
     input_state.drum.ka_left.triggered = m_pads.at(Id::KA_LEFT).getState();
+    input_state.drum.ka_left.duration_ms = m_pads.at(Id::KA_LEFT).getTriggerDuration();
     input_state.drum.don_right.triggered = m_pads.at(Id::DON_RIGHT).getState();
+    input_state.drum.don_right.duration_ms = m_pads.at(Id::DON_RIGHT).getTriggerDuration();
     input_state.drum.ka_right.triggered = m_pads.at(Id::KA_RIGHT).getState();
+    input_state.drum.ka_right.duration_ms = m_pads.at(Id::KA_RIGHT).getTriggerDuration();
 
     // PHASE 6: Update roll counter
     m_roll_counter.update(input_state);

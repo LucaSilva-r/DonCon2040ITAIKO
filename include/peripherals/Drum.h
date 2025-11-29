@@ -108,6 +108,7 @@ class Drum {
         [[nodiscard]] bool getState() const { return m_active; };
         [[nodiscard]] uint32_t getLastChange() const { return m_last_change; };
         [[nodiscard]] uint32_t getLastTrigger() const { return m_last_trigger; };
+        [[nodiscard]] uint32_t getTriggerDuration() const;
 
         void setLastAdcValue(int32_t value) { m_last_adc_value = value; };
         void setState(bool state, uint16_t debounce_delay);
