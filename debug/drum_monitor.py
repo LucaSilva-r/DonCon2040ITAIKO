@@ -243,7 +243,7 @@ class DrumMonitor(QMainWindow):
 
     def init_ui(self):
         """Initialize the user interface"""
-        self.setWindowTitle("DonCon2040 Drum Monitor & Configurator")
+        self.setWindowTitle("ITAiko Drum Monitor & Configurator")
         self.setGeometry(100, 100, 1400, 900)
 
         # Central widget and main layout
@@ -363,36 +363,128 @@ class DrumMonitor(QMainWindow):
         widget = QWidget()
         main_layout = QVBoxLayout(widget)
 
-        # Basic Thresholds section
-        threshold_group = QGroupBox("Basic Thresholds (Trigger Sensitivity)")
-        threshold_layout = QFormLayout()
+        # Create a grid layout for pad-specific settings (2 columns)
+        pads_layout = QGridLayout()
 
-        self.config_widgets[0] = QSpinBox()  # Don Left
+        # Don Left (Left Face) - Column 0, Row 0
+        don_left_group = QGroupBox("Don Left (Left Face)")
+        don_left_layout = QFormLayout()
+
+        self.config_widgets[0] = QSpinBox()  # Trigger threshold
         self.config_widgets[0].setRange(0, 4095)
         self.config_widgets[0].setValue(800)
-        threshold_layout.addRow("Don Left (Left Face):", self.config_widgets[0])
+        don_left_layout.addRow("Light Trigger:", self.config_widgets[0])
 
-        self.config_widgets[1] = QSpinBox()  # Ka Left
+        self.config_widgets[10] = QSpinBox()  # Double trigger threshold
+        self.config_widgets[10].setRange(0, 4095)
+        self.config_widgets[10].setValue(1200)
+        self.config_widgets[10].setEnabled(False)
+        self.config_widgets[10].setStyleSheet("QSpinBox { background-color: #2a2a2a; color: #666666; }")
+        don_left_layout.addRow("Heavy Trigger:", self.config_widgets[10])
+
+        self.config_widgets[14] = QSpinBox()  # Cutoff threshold
+        self.config_widgets[14].setRange(0, 4095)
+        self.config_widgets[14].setValue(4095)
+        don_left_layout.addRow("Cutoff (Ignore Above):", self.config_widgets[14])
+
+        don_left_group.setLayout(don_left_layout)
+        pads_layout.addWidget(don_left_group, 0, 0)
+
+        # Ka Left (Left Rim) - Column 1, Row 0
+        ka_left_group = QGroupBox("Ka Left (Left Rim)")
+        ka_left_layout = QFormLayout()
+
+        self.config_widgets[1] = QSpinBox()  # Trigger threshold
         self.config_widgets[1].setRange(0, 4095)
         self.config_widgets[1].setValue(800)
-        threshold_layout.addRow("Ka Left (Left Rim):", self.config_widgets[1])
+        ka_left_layout.addRow("Light Trigger:", self.config_widgets[1])
 
-        self.config_widgets[2] = QSpinBox()  # Don Right
+        self.config_widgets[11] = QSpinBox()  # Double trigger threshold
+        self.config_widgets[11].setRange(0, 4095)
+        self.config_widgets[11].setValue(1200)
+        self.config_widgets[11].setEnabled(False)
+        self.config_widgets[11].setStyleSheet("QSpinBox { background-color: #2a2a2a; color: #666666; }")
+        ka_left_layout.addRow("Heavy Trigger:", self.config_widgets[11])
+
+        self.config_widgets[15] = QSpinBox()  # Cutoff threshold
+        self.config_widgets[15].setRange(0, 4095)
+        self.config_widgets[15].setValue(4095)
+        ka_left_layout.addRow("Cutoff (Ignore Above):", self.config_widgets[15])
+
+        ka_left_group.setLayout(ka_left_layout)
+        pads_layout.addWidget(ka_left_group, 0, 1)
+
+        # Don Right (Right Face) - Column 0, Row 1
+        don_right_group = QGroupBox("Don Right (Right Face)")
+        don_right_layout = QFormLayout()
+
+        self.config_widgets[2] = QSpinBox()  # Trigger threshold
         self.config_widgets[2].setRange(0, 4095)
         self.config_widgets[2].setValue(800)
-        threshold_layout.addRow("Don Right (Right Face):", self.config_widgets[2])
+        don_right_layout.addRow("Light Trigger:", self.config_widgets[2])
 
-        self.config_widgets[3] = QSpinBox()  # Ka Right
+        self.config_widgets[12] = QSpinBox()  # Double trigger threshold
+        self.config_widgets[12].setRange(0, 4095)
+        self.config_widgets[12].setValue(1200)
+        self.config_widgets[12].setEnabled(False)
+        self.config_widgets[12].setStyleSheet("QSpinBox { background-color: #2a2a2a; color: #666666; }")
+        don_right_layout.addRow("Heavy Trigger:", self.config_widgets[12])
+
+        self.config_widgets[16] = QSpinBox()  # Cutoff threshold
+        self.config_widgets[16].setRange(0, 4095)
+        self.config_widgets[16].setValue(4095)
+        don_right_layout.addRow("Cutoff (Ignore Above):", self.config_widgets[16])
+
+        don_right_group.setLayout(don_right_layout)
+        pads_layout.addWidget(don_right_group, 1, 0)
+
+        # Ka Right (Right Rim) - Column 1, Row 1
+        ka_right_group = QGroupBox("Ka Right (Right Rim)")
+        ka_right_layout = QFormLayout()
+
+        self.config_widgets[3] = QSpinBox()  # Trigger threshold
         self.config_widgets[3].setRange(0, 4095)
         self.config_widgets[3].setValue(800)
-        threshold_layout.addRow("Ka Right (Right Rim):", self.config_widgets[3])
+        ka_right_layout.addRow("Light Trigger:", self.config_widgets[3])
 
-        threshold_group.setLayout(threshold_layout)
-        main_layout.addWidget(threshold_group)
+        self.config_widgets[13] = QSpinBox()  # Double trigger threshold
+        self.config_widgets[13].setRange(0, 4095)
+        self.config_widgets[13].setValue(1200)
+        self.config_widgets[13].setEnabled(False)
+        self.config_widgets[13].setStyleSheet("QSpinBox { background-color: #2a2a2a; color: #666666; }")
+        ka_right_layout.addRow("Heavy Trigger:", self.config_widgets[13])
+
+        self.config_widgets[17] = QSpinBox()  # Cutoff threshold
+        self.config_widgets[17].setRange(0, 4095)
+        self.config_widgets[17].setValue(4095)
+        ka_right_layout.addRow("Cutoff (Ignore Above):", self.config_widgets[17])
+
+        ka_right_group.setLayout(ka_right_layout)
+        pads_layout.addWidget(ka_right_group, 1, 1)
+
+        main_layout.addLayout(pads_layout)
+
+        # Global Settings section
+        global_group = QGroupBox("Global Settings")
+        global_layout = QFormLayout()
+
+        self.config_widgets[9] = QComboBox()  # Double Trigger Mode
+        self.config_widgets[9].addItems(["Off", "On"])
+        self.config_widgets[9].currentIndexChanged.connect(self.on_double_mode_changed)
+        self.config_widgets[9].setCurrentIndex(0)  # This will trigger on_double_mode_changed
+        global_layout.addRow("Allow double inputs (heavy hits):", self.config_widgets[9])
+
+        global_group.setLayout(global_layout)
+        main_layout.addWidget(global_group)
 
         # Timing Settings section
         timing_group = QGroupBox("Timing Settings (milliseconds)")
         timing_layout = QFormLayout()
+
+        self.config_widgets[8] = QSpinBox()  # Individual Debounce (moved to top)
+        self.config_widgets[8].setRange(0, 1000)
+        self.config_widgets[8].setValue(25)
+        timing_layout.addRow("Individual Debounce (A delay):", self.config_widgets[8])
 
         self.config_widgets[4] = QSpinBox()  # Don Debounce
         self.config_widgets[4].setRange(0, 1000)
@@ -409,82 +501,13 @@ class DrumMonitor(QMainWindow):
         self.config_widgets[6].setValue(30)
         timing_layout.addRow("Crosstalk Debounce (D delay):", self.config_widgets[6])
 
-        self.config_widgets[7] = QSpinBox()  # Key Timeout
+        self.config_widgets[7] = QSpinBox()  # Key Hold Time
         self.config_widgets[7].setRange(0, 1000)
         self.config_widgets[7].setValue(19)
-        timing_layout.addRow("Key Timeout (H delay):", self.config_widgets[7])
-
-        self.config_widgets[8] = QSpinBox()  # Debounce Delay
-        self.config_widgets[8].setRange(0, 1000)
-        self.config_widgets[8].setValue(25)
-        timing_layout.addRow("Debounce Delay (A delay):", self.config_widgets[8])
+        timing_layout.addRow("Key Hold Time (H delay):", self.config_widgets[7])
 
         timing_group.setLayout(timing_layout)
         main_layout.addWidget(timing_group)
-
-        # Double Trigger Settings section
-        double_group = QGroupBox("Double Trigger Settings")
-        double_layout = QFormLayout()
-
-        self.config_widgets[9] = QComboBox()  # Double Trigger Mode
-        self.config_widgets[9].addItems(["Off", "Threshold"])
-        self.config_widgets[9].setCurrentIndex(0)
-        self.config_widgets[9].currentIndexChanged.connect(self.on_double_mode_changed)
-        double_layout.addRow("Double Trigger Mode:", self.config_widgets[9])
-
-        self.config_widgets[10] = QSpinBox()  # Double Don Left
-        self.config_widgets[10].setRange(0, 4095)
-        self.config_widgets[10].setValue(1200)
-        self.config_widgets[10].setEnabled(False)
-        double_layout.addRow("Double Don Left:", self.config_widgets[10])
-
-        self.config_widgets[11] = QSpinBox()  # Double Ka Left
-        self.config_widgets[11].setRange(0, 4095)
-        self.config_widgets[11].setValue(1200)
-        self.config_widgets[11].setEnabled(False)
-        double_layout.addRow("Double Ka Left:", self.config_widgets[11])
-
-        self.config_widgets[12] = QSpinBox()  # Double Don Right
-        self.config_widgets[12].setRange(0, 4095)
-        self.config_widgets[12].setValue(1200)
-        self.config_widgets[12].setEnabled(False)
-        double_layout.addRow("Double Don Right:", self.config_widgets[12])
-
-        self.config_widgets[13] = QSpinBox()  # Double Ka Right
-        self.config_widgets[13].setRange(0, 4095)
-        self.config_widgets[13].setValue(1200)
-        self.config_widgets[13].setEnabled(False)
-        double_layout.addRow("Double Ka Right:", self.config_widgets[13])
-
-        double_group.setLayout(double_layout)
-        main_layout.addWidget(double_group)
-
-        # Cutoff Thresholds section
-        cutoff_group = QGroupBox("Cutoff Thresholds (Ignore Above)")
-        cutoff_layout = QFormLayout()
-
-        self.config_widgets[14] = QSpinBox()  # Cutoff Don Left
-        self.config_widgets[14].setRange(0, 4095)
-        self.config_widgets[14].setValue(4095)
-        cutoff_layout.addRow("Cutoff Don Left:", self.config_widgets[14])
-
-        self.config_widgets[15] = QSpinBox()  # Cutoff Ka Left
-        self.config_widgets[15].setRange(0, 4095)
-        self.config_widgets[15].setValue(4095)
-        cutoff_layout.addRow("Cutoff Ka Left:", self.config_widgets[15])
-
-        self.config_widgets[16] = QSpinBox()  # Cutoff Don Right
-        self.config_widgets[16].setRange(0, 4095)
-        self.config_widgets[16].setValue(4095)
-        cutoff_layout.addRow("Cutoff Don Right:", self.config_widgets[16])
-
-        self.config_widgets[17] = QSpinBox()  # Cutoff Ka Right
-        self.config_widgets[17].setRange(0, 4095)
-        self.config_widgets[17].setValue(4095)
-        cutoff_layout.addRow("Cutoff Ka Right:", self.config_widgets[17])
-
-        cutoff_group.setLayout(cutoff_layout)
-        main_layout.addWidget(cutoff_group)
 
         # Action Buttons
         button_layout = QHBoxLayout()
@@ -836,10 +859,14 @@ class DrumMonitor(QMainWindow):
         """Enable/disable double trigger threshold spinboxes based on mode"""
         # Enable thresholds only when mode is "Threshold" (index 1)
         enabled = (index == 1)
-        self.config_widgets[10].setEnabled(enabled)
-        self.config_widgets[11].setEnabled(enabled)
-        self.config_widgets[12].setEnabled(enabled)
-        self.config_widgets[13].setEnabled(enabled)
+
+        # Style for disabled spinboxes to make them visually grey
+        disabled_style = "QSpinBox { background-color: #2a2a2a; color: #666666; }"
+        enabled_style = ""
+
+        for key in [10, 11, 12, 13]:
+            self.config_widgets[key].setEnabled(enabled)
+            self.config_widgets[key].setStyleSheet(enabled_style if enabled else disabled_style)
 
     def read_config_from_device(self):
         """Read configuration from device and update UI"""
