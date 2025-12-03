@@ -124,8 +124,8 @@ void SerialConfig::handleWriteData(const char *data) {
 }
 
 void SerialConfig::sendAllSettings() {
-    // Send 14 values: 9 hidtaiko-compatible + 5 extended (double trigger)
-    for (int i = 0; i < 14; i++) {
+    // Send 18 values: 9 hidtaiko-compatible + 5 extended (double trigger) + 4 extended (cutoff thresholds)
+    for (int i = 0; i < 18; i++) {
         uint16_t value = getSettingByKey(i);
         printf("%d:%d\n", i, value);
         stdio_flush();
@@ -166,6 +166,14 @@ uint16_t SerialConfig::getSettingByKey(int key) {
         return m_settings_store.getDoubleTriggerThresholds().don_right;
     case 13: // Double Trigger Ka Right Threshold
         return m_settings_store.getDoubleTriggerThresholds().ka_right;
+    case 14: // Cutoff Don Left
+        return m_settings_store.getCutoffThresholds().don_left;
+    case 15: // Cutoff Ka Left
+        return m_settings_store.getCutoffThresholds().ka_left;
+    case 16: // Cutoff Don Right
+        return m_settings_store.getCutoffThresholds().don_right;
+    case 17: // Cutoff Ka Right
+        return m_settings_store.getCutoffThresholds().ka_right;
     default:
         return 0;
     }
@@ -226,6 +234,26 @@ void SerialConfig::setSettingByKey(int key, uint16_t value) {
     case 13: // Double Trigger Ka Right
         double_thresholds.ka_right = value;
         m_settings_store.setDoubleTriggerThresholds(double_thresholds);
+        break;
+    case 14: // Cutoff Don Left
+        double_thresholds = m_settings_store.getCutoffThresholds();
+        double_thresholds.don_left = value;
+        m_settings_store.setCutoffThresholds(double_thresholds);
+        break;
+    case 15: // Cutoff Ka Left
+        double_thresholds = m_settings_store.getCutoffThresholds();
+        double_thresholds.ka_left = value;
+        m_settings_store.setCutoffThresholds(double_thresholds);
+        break;
+    case 16: // Cutoff Don Right
+        double_thresholds = m_settings_store.getCutoffThresholds();
+        double_thresholds.don_right = value;
+        m_settings_store.setCutoffThresholds(double_thresholds);
+        break;
+    case 17: // Cutoff Ka Right
+        double_thresholds = m_settings_store.getCutoffThresholds();
+        double_thresholds.ka_right = value;
+        m_settings_store.setCutoffThresholds(double_thresholds);
         break;
     default:
         break;

@@ -39,6 +39,7 @@ const std::map<Menu::Page, const Menu::Descriptor> Menu::descriptors = {
       {{"Hold Time", Menu::Descriptor::Action::GotoPageDrumDebounceDelay},       //
        {"Debounce", Menu::Descriptor::Action::GotoPageDrumDebounce},             //
        {"Thresholds", Menu::Descriptor::Action::GotoPageDrumTriggerThresholds},  //
+       {"Cutoff", Menu::Descriptor::Action::GotoPageDrumCutoffThresholds},       //
        {"Double Trg", Menu::Descriptor::Action::GotoPageDrumDoubleTrigger}},     //
       0}},                                                                       //
 
@@ -50,6 +51,15 @@ const std::map<Menu::Page, const Menu::Descriptor> Menu::descriptors = {
        {"Right Don", Menu::Descriptor::Action::GotoPageDrumTriggerThresholdDonRight}, //
        {"Right Ka", Menu::Descriptor::Action::GotoPageDrumTriggerThresholdKaRight}},  //
       0}},                                                                            //
+
+    {Menu::Page::DrumCutoffThresholds,                                              //
+     {Menu::Descriptor::Type::Menu,                                                 //
+      "Cutoff",                                                                     //
+      {{"Left Ka", Menu::Descriptor::Action::GotoPageDrumCutoffThresholdKaLeft},    //
+       {"Left Don", Menu::Descriptor::Action::GotoPageDrumCutoffThresholdDonLeft},  //
+       {"Right Don", Menu::Descriptor::Action::GotoPageDrumCutoffThresholdDonRight}, //
+       {"Right Ka", Menu::Descriptor::Action::GotoPageDrumCutoffThresholdKaRight}}, //
+      0}},                                                                          //
 
     {Menu::Page::DrumDoubleTrigger,                                                  //
      {Menu::Descriptor::Type::Menu,                                                  //
@@ -152,6 +162,30 @@ const std::map<Menu::Page, const Menu::Descriptor> Menu::descriptors = {
      {Menu::Descriptor::Type::Value,                                          //
       "Trg Level Right Ka",                                                   //
       {{"", Menu::Descriptor::Action::SetDrumDoubleTriggerThresholdKaRight}}, //
+      4095}},
+
+    {Menu::Page::DrumCutoffThresholdKaLeft,                           //
+     {Menu::Descriptor::Type::Value,                                  //
+      "Cutoff Threshold Ka Left",                                     //
+      {{"", Menu::Descriptor::Action::SetDrumCutoffThresholdKaLeft}}, //
+      4095}},
+
+    {Menu::Page::DrumCutoffThresholdDonLeft,                           //
+     {Menu::Descriptor::Type::Value,                                   //
+      "Cutoff Threshold Don Left",                                     //
+      {{"", Menu::Descriptor::Action::SetDrumCutoffThresholdDonLeft}}, //
+      4095}},
+
+    {Menu::Page::DrumCutoffThresholdDonRight,                           //
+     {Menu::Descriptor::Type::Value,                                    //
+      "Cutoff Threshold Don Right",                                     //
+      {{"", Menu::Descriptor::Action::SetDrumCutoffThresholdDonRight}}, //
+      4095}},
+
+    {Menu::Page::DrumCutoffThresholdKaRight,                           //
+     {Menu::Descriptor::Type::Value,                                   //
+      "Cutoff Threshold Ka Right",                                     //
+      {{"", Menu::Descriptor::Action::SetDrumCutoffThresholdKaRight}}, //
       4095}},
 
     {Menu::Page::Led,                                                           //
@@ -297,6 +331,14 @@ uint16_t Menu::getCurrentValue(Menu::Page page) {
         return m_store->getDoubleTriggerThresholds().don_right;
     case Page::DrumDoubleTriggerThresholdKaRight:
         return m_store->getDoubleTriggerThresholds().ka_right;
+    case Page::DrumCutoffThresholdKaLeft:
+        return m_store->getCutoffThresholds().ka_left;
+    case Page::DrumCutoffThresholdDonLeft:
+        return m_store->getCutoffThresholds().don_left;
+    case Page::DrumCutoffThresholdDonRight:
+        return m_store->getCutoffThresholds().don_right;
+    case Page::DrumCutoffThresholdKaRight:
+        return m_store->getCutoffThresholds().ka_right;
     case Page::LedBrightness:
         return m_store->getLedBrightness();
     case Page::LedEnablePlayerColor:
@@ -306,6 +348,7 @@ uint16_t Menu::getCurrentValue(Menu::Page page) {
     case Page::DrumDebounce:
     case Page::DrumTriggerThresholds:
     case Page::DrumDoubleTriggerThresholds:
+    case Page::DrumCutoffThresholds:
     case Page::Led:
     case Page::Reset:
     case Page::Bootsel:
@@ -401,6 +444,30 @@ void Menu::gotoParent(bool do_restore) {
             thresholds.ka_right = current_state.original_value;
             m_store->setDoubleTriggerThresholds(thresholds);
         } break;
+        case Page::DrumCutoffThresholdKaLeft: {
+            auto thresholds = m_store->getCutoffThresholds();
+
+            thresholds.ka_left = current_state.original_value;
+            m_store->setCutoffThresholds(thresholds);
+        } break;
+        case Page::DrumCutoffThresholdDonLeft: {
+            auto thresholds = m_store->getCutoffThresholds();
+
+            thresholds.don_left = current_state.original_value;
+            m_store->setCutoffThresholds(thresholds);
+        } break;
+        case Page::DrumCutoffThresholdDonRight: {
+            auto thresholds = m_store->getCutoffThresholds();
+
+            thresholds.don_right = current_state.original_value;
+            m_store->setCutoffThresholds(thresholds);
+        } break;
+        case Page::DrumCutoffThresholdKaRight: {
+            auto thresholds = m_store->getCutoffThresholds();
+
+            thresholds.ka_right = current_state.original_value;
+            m_store->setCutoffThresholds(thresholds);
+        } break;
         case Page::LedBrightness:
             m_store->setLedBrightness(current_state.original_value);
             break;
@@ -412,6 +479,7 @@ void Menu::gotoParent(bool do_restore) {
         case Page::DrumDebounce:
         case Page::DrumTriggerThresholds:
         case Page::DrumDoubleTriggerThresholds:
+        case Page::DrumCutoffThresholds:
         case Page::Led:
         case Page::Reset:
         case Page::Bootsel:
@@ -441,6 +509,9 @@ void Menu::performAction(Descriptor::Action action, uint16_t value) {
         break;
     case Descriptor::Action::GotoPageDrumTriggerThresholds:
         gotoPage(Page::DrumTriggerThresholds);
+        break;
+    case Descriptor::Action::GotoPageDrumCutoffThresholds:
+        gotoPage(Page::DrumCutoffThresholds);
         break;
     case Descriptor::Action::GotoPageDrumDoubleTriggerThresholds:
         m_store->setDoubleTriggerMode(Peripherals::Drum::Config::DoubleTriggerMode::Threshold);
@@ -496,6 +567,18 @@ void Menu::performAction(Descriptor::Action action, uint16_t value) {
         break;
     case Descriptor::Action::GotoPageDrumDoubleTriggerThresholdKaRight:
         gotoPage(Page::DrumDoubleTriggerThresholdKaRight);
+        break;
+    case Descriptor::Action::GotoPageDrumCutoffThresholdKaLeft:
+        gotoPage(Page::DrumCutoffThresholdKaLeft);
+        break;
+    case Descriptor::Action::GotoPageDrumCutoffThresholdDonLeft:
+        gotoPage(Page::DrumCutoffThresholdDonLeft);
+        break;
+    case Descriptor::Action::GotoPageDrumCutoffThresholdDonRight:
+        gotoPage(Page::DrumCutoffThresholdDonRight);
+        break;
+    case Descriptor::Action::GotoPageDrumCutoffThresholdKaRight:
+        gotoPage(Page::DrumCutoffThresholdKaRight);
         break;
     case Descriptor::Action::GotoPageLedBrightness:
         gotoPage(Page::LedBrightness);
@@ -572,6 +655,30 @@ void Menu::performAction(Descriptor::Action action, uint16_t value) {
 
         thresholds.ka_right = value;
         m_store->setDoubleTriggerThresholds(thresholds);
+    } break;
+    case Descriptor::Action::SetDrumCutoffThresholdKaLeft: {
+        auto thresholds = m_store->getCutoffThresholds();
+
+        thresholds.ka_left = value;
+        m_store->setCutoffThresholds(thresholds);
+    } break;
+    case Descriptor::Action::SetDrumCutoffThresholdDonLeft: {
+        auto thresholds = m_store->getCutoffThresholds();
+
+        thresholds.don_left = value;
+        m_store->setCutoffThresholds(thresholds);
+    } break;
+    case Descriptor::Action::SetDrumCutoffThresholdDonRight: {
+        auto thresholds = m_store->getCutoffThresholds();
+
+        thresholds.don_right = value;
+        m_store->setCutoffThresholds(thresholds);
+    } break;
+    case Descriptor::Action::SetDrumCutoffThresholdKaRight: {
+        auto thresholds = m_store->getCutoffThresholds();
+
+        thresholds.ka_right = value;
+        m_store->setCutoffThresholds(thresholds);
     } break;
     case Descriptor::Action::SetLedBrightness:
         m_store->setLedBrightness(value);

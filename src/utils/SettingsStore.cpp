@@ -25,6 +25,7 @@ SettingsStore::SettingsStore()
                      .debounce_delay = Config::Default::drum_config.debounce_delay_ms,
                      .double_trigger_mode = Config::Default::drum_config.double_trigger_mode,
                      .double_trigger_thresholds = Config::Default::drum_config.double_trigger_thresholds,
+                     .cutoff_thresholds = Config::Default::drum_config.cutoff_thresholds,
                      .don_debounce = Config::Default::drum_config.don_debounce,
                      .kat_debounce = Config::Default::drum_config.kat_debounce,
                      .crosstalk_debounce = Config::Default::drum_config.crosstalk_debounce,
@@ -161,6 +162,20 @@ void SettingsStore::setWeightedComparisonMode(const Peripherals::Drum::Config::W
 }
 Peripherals::Drum::Config::WeightedComparisonMode SettingsStore::getWeightedComparisonMode() const {
     return m_store_cache.weighted_comparison_mode;
+}
+
+void SettingsStore::setCutoffThresholds(const Peripherals::Drum::Config::Thresholds &thresholds) {
+    if (m_store_cache.cutoff_thresholds.don_left != thresholds.don_left ||
+        m_store_cache.cutoff_thresholds.don_right != thresholds.don_right ||
+        m_store_cache.cutoff_thresholds.ka_left != thresholds.ka_left ||
+        m_store_cache.cutoff_thresholds.ka_right != thresholds.ka_right) {
+        m_store_cache.cutoff_thresholds = thresholds;
+        m_dirty = true;
+    }
+}
+
+Peripherals::Drum::Config::Thresholds SettingsStore::getCutoffThresholds() const {
+    return m_store_cache.cutoff_thresholds;
 }
 
 void SettingsStore::store() {

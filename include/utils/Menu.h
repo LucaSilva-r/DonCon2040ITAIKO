@@ -44,6 +44,12 @@ class Menu {
         DrumDoubleTriggerThresholdDonRight,
         DrumDoubleTriggerThresholdKaRight,
 
+        DrumCutoffThresholds,
+        DrumCutoffThresholdKaLeft,
+        DrumCutoffThresholdDonLeft,
+        DrumCutoffThresholdDonRight,
+        DrumCutoffThresholdKaRight,
+
         LedBrightness,
         LedEnablePlayerColor,
 
@@ -95,6 +101,12 @@ class Menu {
             GotoPageDrumDoubleTriggerThresholdDonRight,
             GotoPageDrumDoubleTriggerThresholdKaRight,
 
+            GotoPageDrumCutoffThresholds,
+            GotoPageDrumCutoffThresholdKaLeft,
+            GotoPageDrumCutoffThresholdDonLeft,
+            GotoPageDrumCutoffThresholdDonRight,
+            GotoPageDrumCutoffThresholdKaRight,
+
             GotoPageLedBrightness,
             GotoPageLedEnablePlayerColor,
 
@@ -117,6 +129,11 @@ class Menu {
             SetDrumDoubleTriggerThresholdDonLeft,
             SetDrumDoubleTriggerThresholdDonRight,
             SetDrumDoubleTriggerThresholdKaRight,
+
+            SetDrumCutoffThresholdKaLeft,
+            SetDrumCutoffThresholdDonLeft,
+            SetDrumCutoffThresholdDonRight,
+            SetDrumCutoffThresholdKaRight,
 
             SetLedBrightness,
             SetLedEnablePlayerColor,

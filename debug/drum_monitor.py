@@ -57,7 +57,7 @@ class SerialConfigHelper:
         self.send_command(1002)  # Enter write mode
         time.sleep(0.1)
 
-        # Send all 14 settings space-separated
+        # Send all 18 settings space-separated (14 basic + 4 cutoff thresholds)
         settings_str = ' '.join([f"{k}:{v}" for k, v in sorted(settings_dict.items())])
         self.ser.write(f"{settings_str}\n".encode())
         self.ser.flush()
@@ -222,6 +222,7 @@ class DrumMonitor(QMainWindow):
         # Thresholds for visual reference (can be adjusted in UI)
         self.thresholds = [450, 350, 350, 450]  # Ka_L, Don_L, Don_R, Ka_R
         self.heavy_thresholds = [900, 700, 700, 900]  # Ka_L, Don_L, Don_R, Ka_R (heavy/double trigger)
+        self.cutoff_thresholds = [4095, 4095, 4095, 4095]  # Ka_L, Don_L, Don_R, Ka_R (cutoff - ignore above)
 
         # Configuration widgets (created in create_config_panel)
         self.config_widgets = {}
@@ -458,6 +459,33 @@ class DrumMonitor(QMainWindow):
         double_group.setLayout(double_layout)
         main_layout.addWidget(double_group)
 
+        # Cutoff Thresholds section
+        cutoff_group = QGroupBox("Cutoff Thresholds (Ignore Above)")
+        cutoff_layout = QFormLayout()
+
+        self.config_widgets[14] = QSpinBox()  # Cutoff Don Left
+        self.config_widgets[14].setRange(0, 4095)
+        self.config_widgets[14].setValue(4095)
+        cutoff_layout.addRow("Cutoff Don Left:", self.config_widgets[14])
+
+        self.config_widgets[15] = QSpinBox()  # Cutoff Ka Left
+        self.config_widgets[15].setRange(0, 4095)
+        self.config_widgets[15].setValue(4095)
+        cutoff_layout.addRow("Cutoff Ka Left:", self.config_widgets[15])
+
+        self.config_widgets[16] = QSpinBox()  # Cutoff Don Right
+        self.config_widgets[16].setRange(0, 4095)
+        self.config_widgets[16].setValue(4095)
+        cutoff_layout.addRow("Cutoff Don Right:", self.config_widgets[16])
+
+        self.config_widgets[17] = QSpinBox()  # Cutoff Ka Right
+        self.config_widgets[17].setRange(0, 4095)
+        self.config_widgets[17].setValue(4095)
+        cutoff_layout.addRow("Cutoff Ka Right:", self.config_widgets[17])
+
+        cutoff_group.setLayout(cutoff_layout)
+        main_layout.addWidget(cutoff_group)
+
         # Action Buttons
         button_layout = QHBoxLayout()
 
@@ -488,6 +516,7 @@ class DrumMonitor(QMainWindow):
         self.trigger_duration_curves = []
         self.threshold_lines = []
         self.heavy_threshold_lines = []
+        self.cutoff_threshold_lines = []
 
         for i, (name, color) in enumerate(self.PADS):
             # Create plot
@@ -527,6 +556,15 @@ class DrumMonitor(QMainWindow):
             )
             plot.addItem(heavy_threshold_line)
 
+            # Add cutoff threshold line (red)
+            cutoff_threshold_line = pg.InfiniteLine(
+                pos=self.cutoff_thresholds[i],
+                angle=0,
+                pen=pg.mkPen(color=(255, 50, 50), width=2, style=Qt.DashLine),
+                label=f'Cutoff: {self.cutoff_thresholds[i]}'
+            )
+            plot.addItem(cutoff_threshold_line)
+
             # Add legend
             plot.addLegend()
             plot.legend.addItem(curve, "Raw ADC")
@@ -539,6 +577,7 @@ class DrumMonitor(QMainWindow):
             self.trigger_duration_curves.append(trigger_duration_curve)
             self.threshold_lines.append(threshold_line)
             self.heavy_threshold_lines.append(heavy_threshold_line)
+            self.cutoff_threshold_lines.append(cutoff_threshold_line)
 
     def refresh_ports(self):
         """Refresh the list of available serial ports"""
@@ -837,6 +876,13 @@ class DrumMonitor(QMainWindow):
                     heavy_threshold_line.setValue(self.heavy_thresholds[i])
                     heavy_threshold_line.label.setFormat(f'Heavy: {self.heavy_thresholds[i]}')
 
+            # Update cutoff threshold lines on graphs
+            if 14 in settings and 15 in settings and 16 in settings and 17 in settings:
+                self.cutoff_thresholds = [settings[15], settings[14], settings[16], settings[17]]  # Ka_L, Don_L, Don_R, Ka_R
+                for i, cutoff_threshold_line in enumerate(self.cutoff_threshold_lines):
+                    cutoff_threshold_line.setValue(self.cutoff_thresholds[i])
+                    cutoff_threshold_line.label.setFormat(f'Cutoff: {self.cutoff_thresholds[i]}')
+
             self.statusBar().showMessage(f"Read {len(settings)} settings from device")
 
         except Exception as e:
@@ -849,9 +895,9 @@ class DrumMonitor(QMainWindow):
             return
 
         try:
-            # Collect all settings from UI
+            # Collect all settings from UI (now 18 settings: 0-17)
             settings = {}
-            for key in range(14):
+            for key in range(18):
                 if key == 9:  # Double trigger mode (dropdown)
                     settings[key] = self.config_widgets[key].currentIndex()
                 else:  # Spinboxes
@@ -870,6 +916,12 @@ class DrumMonitor(QMainWindow):
             for i, heavy_threshold_line in enumerate(self.heavy_threshold_lines):
                 heavy_threshold_line.setValue(self.heavy_thresholds[i])
                 heavy_threshold_line.label.setFormat(f'Heavy: {self.heavy_thresholds[i]}')
+
+            # Update cutoff threshold lines on graphs
+            self.cutoff_thresholds = [settings[15], settings[14], settings[16], settings[17]]  # Ka_L, Don_L, Don_R, Ka_R
+            for i, cutoff_threshold_line in enumerate(self.cutoff_threshold_lines):
+                cutoff_threshold_line.setValue(self.cutoff_thresholds[i])
+                cutoff_threshold_line.label.setFormat(f'Cutoff: {self.cutoff_thresholds[i]}')
 
             # Automatically save to flash after writing
             self.config_helper.save_to_flash()
@@ -900,7 +952,8 @@ class DrumMonitor(QMainWindow):
             0: 800, 1: 800, 2: 800, 3: 800,  # Thresholds
             4: 30, 5: 30, 6: 30, 7: 19, 8: 25,  # Timing
             9: 0,  # Double trigger mode (Off)
-            10: 1200, 11: 1200, 12: 1200, 13: 1200  # Double thresholds
+            10: 1200, 11: 1200, 12: 1200, 13: 1200,  # Double thresholds
+            14: 4095, 15: 4095, 16: 4095, 17: 4095  # Cutoff thresholds (disabled)
         }
 
         for key, value in defaults.items():

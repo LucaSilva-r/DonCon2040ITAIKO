@@ -60,6 +60,8 @@ class Drum {
         DoubleTriggerMode double_trigger_mode;
         Thresholds double_trigger_thresholds;
 
+        Thresholds cutoff_thresholds;
+
         WeightedComparisonMode weighted_comparison_mode;
 
         uint16_t debounce_delay_ms;
@@ -110,6 +112,7 @@ class Drum {
         [[nodiscard]] uint32_t getLastTrigger() const { return m_last_trigger; };
         [[nodiscard]] uint32_t getTriggerDuration() const;
 
+        void setLastTrigger(uint32_t value) { m_last_trigger = value; };
         void setLastAdcValue(int32_t value) { m_last_adc_value = value; };
         void setState(bool state, uint16_t debounce_delay);
         void trigger(uint16_t key_timeout);
@@ -208,6 +211,7 @@ class Drum {
     void setTriggerThresholds(const Config::Thresholds &thresholds);
     void setDoubleTriggerMode(Config::DoubleTriggerMode mode);
     void setDoubleThresholds(const Config::Thresholds &thresholds);
+    void setCutoffThresholds(const Config::Thresholds &thresholds);
     void setWeightedComparisonMode(Config::WeightedComparisonMode mode);
 };
 

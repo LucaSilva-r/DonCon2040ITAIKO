@@ -236,25 +236,37 @@ uint16_t Drum::getThreshold(const Id pad_id, const Config::Thresholds &threshold
 void Drum::updateDigitalInputState(Utils::InputState &input_state, const std::map<Drum::Id, int32_t> &raw_values) {
     const uint32_t now = to_ms_since_boot(get_absolute_time());
 
-    // PHASE 1: Maintain existing button states (key timeout logic)
+    // PHASE 0: Maintain existing button states (key timeout logic)
     for (auto &[id, pad] : m_pads) {
         pad.updateTimeout(m_config.key_timeout_ms);
     }
 
-    // Initialize weighted comparison state
+    // Initialize candidate tracking
     WeightedComparisonState wc_state{};
+    bool don_left_hard = false;
+    bool don_right_hard = false;
+    bool ka_left_hard = false;
+    bool ka_right_hard = false;
 
-    // PHASE 2a: Collect Don candidates
-    for (const auto &id : {Id::DON_LEFT, Id::DON_RIGHT}) {
-        const auto &pad = m_pads.at(id);
+    // PHASE 1: Collect all candidates
+    for (const auto &id : {Id::DON_LEFT, Id::DON_RIGHT, Id::KA_LEFT, Id::KA_RIGHT}) {
+        auto &pad = m_pads.at(id);
 
         const int32_t adc_value = raw_values.at(id);
         const int32_t light_threshold = static_cast<int32_t>(getThreshold(id, m_config.trigger_thresholds));
+        const int32_t cutoff_threshold = static_cast<int32_t>(getThreshold(id, m_config.cutoff_thresholds));
         const int32_t last_adc_value = pad.getLastAdcValue();
         const int32_t delta = adc_value - last_adc_value;
 
-        m_pads.at(id).setLastAdcValue(adc_value);
+        pad.setLastAdcValue(adc_value);
 
+        // Cutoff check: if raw value exceeds cutoff, ignore but block aftershocks
+        if (adc_value > cutoff_threshold) {
+            pad.setLastTrigger(now);
+            continue;
+        }
+
+        // Skip if already pressed
         if (pad.getState()) {
             continue;
         }
@@ -270,84 +282,114 @@ void Drum::updateDigitalInputState(Utils::InputState &input_state, const std::ma
             continue;
         }
 
-        // Don pads: check same-type debounce AND crosstalk
+        // Determine if it's a hard hit
         const bool is_hard_hit =
             m_config.double_trigger_mode != Config::DoubleTriggerMode::Off &&
             delta > static_cast<int32_t>(getThreshold(id, m_config.double_trigger_thresholds));
 
-        if ((now - last_don_time < m_config.don_debounce && !is_hard_hit) ||
-            now - last_kat_time <= m_config.crosstalk_debounce) {
-            continue;
+        // Type-specific debounce and crosstalk checks
+        const bool is_don = (id == Id::DON_LEFT || id == Id::DON_RIGHT);
+
+        if (is_don) {
+            // Crosstalk debounce (never bypassed)
+            if (now - last_kat_time <= m_config.crosstalk_debounce) {
+                continue;
+            }
+            // Same-type debounce (bypassed by hard hit)
+            if (now - last_don_time < m_config.don_debounce && !is_hard_hit) {
+                continue;
+            }
+        } else {
+            // Crosstalk debounce (never bypassed)
+            if (now - last_don_time <= m_config.crosstalk_debounce) {
+                continue;
+            }
+            // Same-type debounce (bypassed by hard hit)
+            if (now - last_kat_time < m_config.kat_debounce && !is_hard_hit) {
+                continue;
+            }
         }
 
-        // Mark as candidate instead of triggering immediately
+        // Calculate ratio and mark as candidate
         const float ratio = calculateTriggerRatio(delta, light_threshold);
 
-        if (id == Id::DON_LEFT) {
+        switch (id) {
+        case Id::DON_LEFT:
             wc_state.don_left_candidate = true;
             wc_state.don_left_ratio = ratio;
-        } else {
+            don_left_hard = is_hard_hit;
+            break;
+        case Id::DON_RIGHT:
             wc_state.don_right_candidate = true;
             wc_state.don_right_ratio = ratio;
-        }
-    }
-
-    // PHASE 2b: Collect Ka candidates
-    for (const auto &id : {Id::KA_LEFT, Id::KA_RIGHT}) {
-        const auto &pad = m_pads.at(id);
-
-        const int32_t adc_value = raw_values.at(id);
-        const int32_t light_threshold = static_cast<int32_t>(getThreshold(id, m_config.trigger_thresholds));
-        const int32_t last_adc_value = pad.getLastAdcValue();
-        const int32_t delta = adc_value - last_adc_value;
-
-        m_pads.at(id).setLastAdcValue(adc_value);
-
-        if (pad.getState()) {
-            continue;
-        }
-
-        // Check if above light threshold
-        if (delta <= light_threshold) {
-            continue;
-        }
-
-        // Per-sensor debounce check
-        const uint32_t time_since_trigger = now - pad.getLastTrigger();
-        if (time_since_trigger <= m_config.key_timeout_ms) {
-            continue;
-        }
-
-        // Ka pads: check same-type debounce AND crosstalk
-        const bool is_hard_hit =
-            m_config.double_trigger_mode != Config::DoubleTriggerMode::Off &&
-            delta > static_cast<int32_t>(getThreshold(id, m_config.double_trigger_thresholds));
-
-        if ((now - last_kat_time < m_config.kat_debounce && !is_hard_hit) ||
-            now - last_don_time <= m_config.crosstalk_debounce) {
-            continue;
-        }
-
-        // PRIORITY CHECK: If ANY Don candidate exists, suppress all Ka
-        if (wc_state.don_left_candidate || wc_state.don_right_candidate) {
-            continue;
-        }
-
-        // Mark as candidate instead of triggering immediately
-        const float ratio = calculateTriggerRatio(delta, light_threshold);
-
-        if (id == Id::KA_LEFT) {
+            don_right_hard = is_hard_hit;
+            break;
+        case Id::KA_LEFT:
             wc_state.ka_left_candidate = true;
             wc_state.ka_left_ratio = ratio;
-        } else {
+            ka_left_hard = is_hard_hit;
+            break;
+        case Id::KA_RIGHT:
             wc_state.ka_right_candidate = true;
             wc_state.ka_right_ratio = ratio;
+            ka_right_hard = is_hard_hit;
+            break;
         }
     }
 
-    // PHASE 3: Apply weighted comparison (only if enabled)
-    if (m_config.weighted_comparison_mode == Config::WeightedComparisonMode::On) {
-        applyWeightedComparison(wc_state);
+    // PHASE 2: Determine winning type based on highest ratio
+    float overall_max = 0.0f;
+    bool winning_type_is_don = true;
+
+    if (wc_state.don_left_candidate && wc_state.don_left_ratio > overall_max) {
+        overall_max = wc_state.don_left_ratio;
+        winning_type_is_don = true;
+    }
+    if (wc_state.don_right_candidate && wc_state.don_right_ratio > overall_max) {
+        overall_max = wc_state.don_right_ratio;
+        winning_type_is_don = true;
+    }
+    if (wc_state.ka_left_candidate && wc_state.ka_left_ratio > overall_max) {
+        overall_max = wc_state.ka_left_ratio;
+        winning_type_is_don = false;
+    }
+    if (wc_state.ka_right_candidate && wc_state.ka_right_ratio > overall_max) {
+        overall_max = wc_state.ka_right_ratio;
+        winning_type_is_don = false;
+    }
+
+    // Discard candidates of losing type
+    if (winning_type_is_don) {
+        wc_state.ka_left_candidate = false;
+        wc_state.ka_right_candidate = false;
+    } else {
+        wc_state.don_left_candidate = false;
+        wc_state.don_right_candidate = false;
+    }
+
+    // PHASE 3: Weighted comparison within winning type (with double-trigger support)
+    if (wc_state.don_left_candidate && wc_state.don_right_candidate) {
+        if (!(don_left_hard && don_right_hard)) {
+            // Not both hard hits - higher ratio wins
+            if (wc_state.don_left_ratio > wc_state.don_right_ratio) {
+                wc_state.don_right_candidate = false;
+            } else {
+                wc_state.don_left_candidate = false;
+            }
+        }
+        // Both hard hits: keep both candidates for double trigger
+    }
+
+    if (wc_state.ka_left_candidate && wc_state.ka_right_candidate) {
+        if (!(ka_left_hard && ka_right_hard)) {
+            // Not both hard hits - higher ratio wins
+            if (wc_state.ka_left_ratio > wc_state.ka_right_ratio) {
+                wc_state.ka_right_candidate = false;
+            } else {
+                wc_state.ka_left_candidate = false;
+            }
+        }
+        // Both hard hits: keep both candidates for double trigger
     }
 
     // PHASE 4: Trigger surviving candidates
@@ -432,6 +474,8 @@ void Drum::setDoubleTriggerMode(const Config::DoubleTriggerMode mode) { m_config
 void Drum::setDoubleThresholds(const Config::Thresholds &thresholds) {
     m_config.double_trigger_thresholds = thresholds;
 }
+
+void Drum::setCutoffThresholds(const Config::Thresholds &thresholds) { m_config.cutoff_thresholds = thresholds; }
 
 void Drum::setWeightedComparisonMode(const Config::WeightedComparisonMode mode) {
     m_config.weighted_comparison_mode = mode;

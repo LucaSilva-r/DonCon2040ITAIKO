@@ -47,6 +47,14 @@ const Peripherals::Drum::Config drum_config = {
             .ka_right = 2500,
         },
 
+    .cutoff_thresholds =
+        {
+            .don_left = 4095,
+            .ka_left = 4095,
+            .don_right = 4095,
+            .ka_right = 4095,
+        },
+
     .weighted_comparison_mode = Peripherals::Drum::Config::WeightedComparisonMode::On,
 
     .debounce_delay_ms = 25,

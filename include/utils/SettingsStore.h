@@ -27,6 +27,7 @@ class SettingsStore {
         uint16_t debounce_delay;
         Peripherals::Drum::Config::DoubleTriggerMode double_trigger_mode;
         Peripherals::Drum::Config::Thresholds double_trigger_thresholds;
+        Peripherals::Drum::Config::Thresholds cutoff_thresholds;
         uint16_t don_debounce;
         uint16_t kat_debounce;
         uint16_t crosstalk_debounce;
@@ -38,7 +39,8 @@ class SettingsStore {
                                 sizeof(uint16_t) - sizeof(Peripherals::Drum::Config::DoubleTriggerMode) -
                                 sizeof(Peripherals::Drum::Config::Thresholds) - sizeof(uint16_t) - sizeof(uint16_t) -
                                 sizeof(uint16_t) - sizeof(uint16_t) -
-                                sizeof(Peripherals::Drum::Config::WeightedComparisonMode)>
+                                sizeof(Peripherals::Drum::Config::WeightedComparisonMode) -
+                                sizeof(Peripherals::Drum::Config::Thresholds)>
             _padding;
     };
     static_assert(sizeof(Storecache) == m_store_size);
@@ -69,6 +71,9 @@ class SettingsStore {
 
     void setDoubleTriggerThresholds(const Peripherals::Drum::Config::Thresholds &thresholds);
     [[nodiscard]] Peripherals::Drum::Config::Thresholds getDoubleTriggerThresholds() const;
+
+    void setCutoffThresholds(const Peripherals::Drum::Config::Thresholds &thresholds);
+    [[nodiscard]] Peripherals::Drum::Config::Thresholds getCutoffThresholds() const;
 
     void setLedBrightness(uint8_t brightness);
     [[nodiscard]] uint8_t getLedBrightness() const;

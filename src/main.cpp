@@ -179,6 +179,7 @@ int main() {
         drum.setTriggerThresholds(settings_store->getTriggerThresholds());
         drum.setDoubleTriggerMode(settings_store->getDoubleTriggerMode());
         drum.setDoubleThresholds(settings_store->getDoubleTriggerThresholds());
+        drum.setCutoffThresholds(settings_store->getCutoffThresholds());
     };
 
     Utils::Menu menu(settings_store);
