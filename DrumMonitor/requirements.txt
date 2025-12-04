@@ -5,6 +5,7 @@ packaging==25.0
 pefile==2024.8.26; platform_system=="Windows"
 pyinstaller==6.17.0
 pyinstaller-hooks-contrib==2025.10
+PyOpenGL==3.1.7
 PyQt5==5.15.11
 pyqtgraph==0.14.0
 pyserial==3.5
