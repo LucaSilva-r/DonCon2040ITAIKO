@@ -241,6 +241,12 @@ class DrumMonitor(QMainWindow):
         self.plot_timer = QTimer()
         self.plot_timer.timeout.connect(self.update_plots)
 
+        # Port monitoring for auto-connect
+        self.known_ports = set()
+        self.port_monitor_timer = QTimer()
+        self.port_monitor_timer.timeout.connect(self.check_for_new_ports)
+        self.port_monitor_timer.start(1000)  # Check every 1 second
+
     def init_ui(self):
         """Initialize the user interface"""
         self.setWindowTitle("ITAiko Drum Monitor & Configurator")
@@ -313,6 +319,12 @@ class DrumMonitor(QMainWindow):
         self.connect_btn = QPushButton("Connect")
         self.connect_btn.clicked.connect(self.toggle_connection)
         layout.addWidget(self.connect_btn)
+
+        # Auto-connect checkbox
+        self.auto_connect_check = QCheckBox("Auto-connect")
+        self.auto_connect_check.setChecked(True)
+        self.auto_connect_check.setToolTip("Automatically connect when drum is plugged in")
+        layout.addWidget(self.auto_connect_check)
 
         layout.addStretch()
 
@@ -484,27 +496,27 @@ class DrumMonitor(QMainWindow):
         self.config_widgets[8] = QSpinBox()  # Individual Debounce (moved to top)
         self.config_widgets[8].setRange(0, 1000)
         self.config_widgets[8].setValue(25)
-        timing_layout.addRow("Individual Debounce (A delay):", self.config_widgets[8])
+        timing_layout.addRow("Key Hold Time:", self.config_widgets[8])
 
         self.config_widgets[4] = QSpinBox()  # Don Debounce
         self.config_widgets[4].setRange(0, 1000)
         self.config_widgets[4].setValue(30)
-        timing_layout.addRow("Don Debounce (B delay):", self.config_widgets[4])
+        timing_layout.addRow("Don Debounce:", self.config_widgets[4])
 
         self.config_widgets[5] = QSpinBox()  # Kat Debounce
         self.config_widgets[5].setRange(0, 1000)
         self.config_widgets[5].setValue(30)
-        timing_layout.addRow("Kat Debounce (C delay):", self.config_widgets[5])
+        timing_layout.addRow("Kat Debounce:", self.config_widgets[5])
 
         self.config_widgets[6] = QSpinBox()  # Crosstalk Debounce
         self.config_widgets[6].setRange(0, 1000)
         self.config_widgets[6].setValue(30)
-        timing_layout.addRow("Crosstalk Debounce (D delay):", self.config_widgets[6])
+        timing_layout.addRow("Crosstalk Debounce:", self.config_widgets[6])
 
         self.config_widgets[7] = QSpinBox()  # Key Hold Time
         self.config_widgets[7].setRange(0, 1000)
         self.config_widgets[7].setValue(19)
-        timing_layout.addRow("Key Hold Time (H delay):", self.config_widgets[7])
+        timing_layout.addRow("Individual key debounce:", self.config_widgets[7])
 
         timing_group.setLayout(timing_layout)
         main_layout.addWidget(timing_group)
@@ -690,6 +702,38 @@ class DrumMonitor(QMainWindow):
             self.log_file.close()
             self.log_file = None
             self.csv_writer = None
+
+    def check_for_new_ports(self):
+        """Check for new Raspberry Pi Pico ports and auto-connect if enabled"""
+        # Get current ports
+        current_ports = set()
+        drum_port = None
+
+        for port in serial.tools.list_ports.comports():
+            current_ports.add(port.device)
+            # Check if this is a Raspberry Pi Pico (VID 0x2E8A)
+            if "2E8A" in port.hwid.upper() and port.device not in self.known_ports:
+                drum_port = port.device
+
+        # Update known ports
+        self.known_ports = current_ports
+
+        # Auto-connect if: checkbox is checked, we found a new drum, and we're not already connected
+        if drum_port and self.auto_connect_check.isChecked() and not self.is_running:
+            # Update the port combo to select the new drum
+            index = self.port_combo.findData(drum_port)
+            if index >= 0:
+                self.port_combo.setCurrentIndex(index)
+                self.connect()
+                self.statusBar().showMessage(f"Auto-connected to {drum_port}")
+            else:
+                # Port list might be stale, refresh and try again
+                self.refresh_ports()
+                index = self.port_combo.findData(drum_port)
+                if index >= 0:
+                    self.port_combo.setCurrentIndex(index)
+                    self.connect()
+                    self.statusBar().showMessage(f"Auto-connected to {drum_port}")
 
     def toggle_logging(self, state):
         """Enable or disable CSV logging"""

@@ -115,7 +115,7 @@ class Drum {
         void setLastTrigger(uint32_t value) { m_last_trigger = value; };
         void setLastAdcValue(int32_t value) { m_last_adc_value = value; };
         void setState(bool state, uint16_t debounce_delay);
-        void trigger(uint16_t key_timeout);
+        void trigger();
         void updateTimeout(uint16_t key_timeout);
         uint16_t getAnalog();
         void setAnalog(uint16_t value, uint16_t debounce_delay);

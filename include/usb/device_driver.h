@@ -5,8 +5,8 @@
 
 #include <stdint.h>
 
-#define USBD_MANUFACTURER "DonCon2040"
-#define USBD_PRODUCT_BASE "Taiko Controller"
+#define USBD_MANUFACTURER "ITAiko"
+#define USBD_PRODUCT_BASE "ITAiko Controller"
 
 #define USBD_MAX_POWER_MAX (500)
 

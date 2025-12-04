@@ -83,13 +83,13 @@ void Drum::Pad::setState(const bool state, const uint16_t debounce_delay) {
     }
 }
 
-void Drum::Pad::trigger(const uint16_t key_timeout) {
+void Drum::Pad::trigger() {
     const uint32_t now = to_ms_since_boot(get_absolute_time());
-
-    // Respect per-pad debounce
-    if (m_last_change + key_timeout > now) {
-        return; // Too soon since last state change
-    }
+    // // Respect per-pad debounce
+    // if (m_last_change + key_timeout > now) {
+    //     return; // Too soon since last state change
+    // }
+    setLastTrigger(now);
 
     m_active = true;
     m_last_trigger = now;
@@ -238,7 +238,7 @@ void Drum::updateDigitalInputState(Utils::InputState &input_state, const std::ma
 
     // PHASE 0: Maintain existing button states (key timeout logic)
     for (auto &[id, pad] : m_pads) {
-        pad.updateTimeout(m_config.key_timeout_ms);
+        pad.updateTimeout(m_config.debounce_delay_ms);
     }
 
     // Initialize candidate tracking
@@ -289,7 +289,6 @@ void Drum::updateDigitalInputState(Utils::InputState &input_state, const std::ma
 
         // Type-specific debounce and crosstalk checks
         const bool is_don = (id == Id::DON_LEFT || id == Id::DON_RIGHT);
-
         if (is_don) {
             // Crosstalk debounce (never bypassed)
             if (now - last_kat_time <= m_config.crosstalk_debounce) {
@@ -394,19 +393,19 @@ void Drum::updateDigitalInputState(Utils::InputState &input_state, const std::ma
 
     // PHASE 4: Trigger surviving candidates
     if (wc_state.don_left_candidate) {
-        m_pads.at(Id::DON_LEFT).trigger(m_config.key_timeout_ms);
+        m_pads.at(Id::DON_LEFT).trigger();
         last_don_time = now;
     }
     if (wc_state.don_right_candidate) {
-        m_pads.at(Id::DON_RIGHT).trigger(m_config.key_timeout_ms);
+        m_pads.at(Id::DON_RIGHT).trigger();
         last_don_time = now;
     }
     if (wc_state.ka_left_candidate) {
-        m_pads.at(Id::KA_LEFT).trigger(m_config.key_timeout_ms);
+        m_pads.at(Id::KA_LEFT).trigger();
         last_kat_time = now;
     }
     if (wc_state.ka_right_candidate) {
-        m_pads.at(Id::KA_RIGHT).trigger(m_config.key_timeout_ms);
+        m_pads.at(Id::KA_RIGHT).trigger();
         last_kat_time = now;
     }
 
