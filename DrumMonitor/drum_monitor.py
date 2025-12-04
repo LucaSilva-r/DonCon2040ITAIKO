@@ -28,16 +28,12 @@ from serial_config_helper import SerialConfigHelper
 from drum_visual_widget import DrumVisualWidget
 import velopack
 
-# Platform-specific update channel
+# Update URL for Velopack
+UPDATE_URL = "https://github.com/LucaSilva-r/ITAIKO"
+
 def get_update_url():
-    """Get the appropriate update URL for the current platform"""
-    system = platform.system().lower()
-    if system == 'darwin':
-        return "https://github.com/LucaSilva-r/ITAIKO"  # macOS
-    elif system == 'linux':
-        return "https://github.com/LucaSilva-r/ITAIKO"  # Linux
-    else:
-        return "https://github.com/LucaSilva-r/ITAIKO"  # Windows (default)
+    """Get the update URL (same for all platforms)"""
+    return UPDATE_URL
 
 class DrumMonitor(QMainWindow):
     """Main application window for drum monitoring"""
