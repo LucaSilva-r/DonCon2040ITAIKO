@@ -1,0 +1,133 @@
+name: Create Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+        include:
+          - os: windows-latest
+            platform: win
+            exe_name: "ITAiko Drum Monitor.exe"
+            separator: "\\"
+          - os: macos-latest
+            platform: osx
+            exe_name: "ITAiko Drum Monitor"
+            separator: "/"
+          - os: ubuntu-latest
+            platform: linux
+            exe_name: "ITAiko Drum Monitor"
+            separator: "/"
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          cd DrumMonitor
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Update Version in Code (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          $content = Get-Content "DrumMonitor\drum_monitor.py" -Raw
+          $content = $content -replace '__version__ = ".*?"', ('__version__ = "' + '${{ github.event.inputs.version }}' + '"')
+          Set-Content "DrumMonitor\drum_monitor.py" -Value $content
+        shell: pwsh
+
+      - name: Update Version in Code (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          sed -i.bak 's/__version__ = ".*"/__version__ = "${{ github.event.inputs.version }}"/' DrumMonitor/drum_monitor.py
+          rm DrumMonitor/drum_monitor.py.bak
+
+      - name: Build with PyInstaller
+        run: |
+          cd DrumMonitor
+          pyinstaller drum_monitor.spec
+
+      - name: Setup .NET (for Velopack CLI)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Install Velopack CLI
+        run: dotnet tool install -g vpk
+
+      - name: Download Previous Release
+        run: vpk download github --repoUrl https://github.com/${{ github.repository }}
+        continue-on-error: true
+
+      - name: Create Velopack Release (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          vpk pack `
+            -u ITAikoDrumMonitor `
+            -v ${{ github.event.inputs.version }} `
+            -p "DrumMonitor\dist\ITAiko Drum Monitor" `
+            -e "${{ matrix.exe_name }}" `
+            --packId ITAikoDrumMonitor-${{ matrix.platform }}
+
+      - name: Create Velopack Release (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          vpk pack \
+            -u ITAikoDrumMonitor \
+            -v ${{ github.event.inputs.version }} \
+            -p "DrumMonitor/dist/ITAiko Drum Monitor" \
+            -e "${{ matrix.exe_name }}" \
+            --packId ITAikoDrumMonitor-${{ matrix.platform }}
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.platform }}
+          path: Releases/
+          retention-days: 1
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-releases
+
+      - name: Setup .NET (for Velopack CLI)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Install Velopack CLI
+        run: dotnet tool install -g vpk
+
+      - name: Create GitHub Release
+        run: |
+          vpk upload github \
+            --repoUrl https://github.com/${{ github.repository }} \
+            --tag v${{ github.event.inputs.version }} \
+            --releaseName "ITAiko Drum Monitor v${{ github.event.inputs.version }}" \
+            --token ${{ secrets.GITHUB_TOKEN }} \
+            --releaseDir all-releases

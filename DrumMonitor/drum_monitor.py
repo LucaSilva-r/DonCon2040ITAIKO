@@ -4,7 +4,11 @@ DonCon2040 Drum Monitor - Real-time ADC visualization tool
 Displays live graphs of drum pad sensor values and trigger states
 """
 
+# Application version - update this for each release
+__version__ = "1.0.0"
+
 import sys
+import platform
 import serial
 import serial.tools.list_ports
 from collections import deque
@@ -22,7 +26,18 @@ import time
 
 from serial_config_helper import SerialConfigHelper
 from drum_visual_widget import DrumVisualWidget
+import velopack
 
+# Platform-specific update channel
+def get_update_url():
+    """Get the appropriate update URL for the current platform"""
+    system = platform.system().lower()
+    if system == 'darwin':
+        return "https://github.com/LucaSilva-r/ITAIKO"  # macOS
+    elif system == 'linux':
+        return "https://github.com/LucaSilva-r/ITAIKO"  # Linux
+    else:
+        return "https://github.com/LucaSilva-r/ITAIKO"  # Windows (default)
 
 class DrumMonitor(QMainWindow):
     """Main application window for drum monitoring"""
@@ -85,7 +100,7 @@ class DrumMonitor(QMainWindow):
 
     def init_ui(self):
         """Initialize the user interface"""
-        self.setWindowTitle("ITAiko Drum Monitor & Configurator")
+        self.setWindowTitle(f"ITAIKO Configurator v{__version__}")
         self.setGeometry(100, 100, 1400, 900)
 
         # Central widget and main layout
@@ -163,6 +178,12 @@ class DrumMonitor(QMainWindow):
         layout.addWidget(self.auto_connect_check)
 
         layout.addStretch()
+
+        # Check for Updates button
+        update_btn = QPushButton("Check for Updates")
+        update_btn.clicked.connect(self.check_for_updates)
+        update_btn.setToolTip("Check if a new version is available")
+        layout.addWidget(update_btn)
 
         group.setLayout(layout)
         return group
@@ -894,6 +915,46 @@ class DrumMonitor(QMainWindow):
 
         self.statusBar().showMessage("Configuration reset to defaults (not written to device)")
 
+    def check_for_updates(self):
+        """Check for updates manually via the UI button"""
+        try:
+            manager = velopack.UpdateManager(get_update_url())
+
+            self.statusBar().showMessage("Checking for updates...")
+            QApplication.processEvents()  # Update UI immediately
+
+            update_info = manager.check_for_updates()
+
+            if not update_info:
+                QMessageBox.information(self, "No Updates",
+                    f"You are running the latest version ({__version__})")
+                self.statusBar().showMessage("No updates available")
+                return
+
+            # Ask user if they want to update
+            reply = QMessageBox.question(self, "Update Available",
+                f"A new version is available: {update_info.target_full_release.version}\n\n"
+                f"Current version: {__version__}\n\n"
+                "Would you like to download and install it now?",
+                QMessageBox.Yes | QMessageBox.No)
+
+            if reply == QMessageBox.Yes:
+                self.statusBar().showMessage("Downloading update...")
+                QApplication.processEvents()
+
+                manager.download_updates(update_info)
+
+                # Inform user and restart
+                QMessageBox.information(self, "Update Ready",
+                    "Update downloaded successfully. The application will now restart to apply the update.")
+
+                manager.apply_updates_and_restart(update_info)
+
+        except Exception as e:
+            QMessageBox.warning(self, "Update Check Failed",
+                f"Could not check for updates:\n{str(e)}")
+            self.statusBar().showMessage("Update check failed")
+
     def closeEvent(self, event):
         """Handle window close event"""
         self.disconnect()
@@ -946,6 +1007,26 @@ def main():
 
     sys.exit(app.exec_())
 
+def update_app():
+    """Check for updates on startup (silent)"""
+    try:
+        manager = velopack.UpdateManager(get_update_url())
+
+        # Silent check - don't block app startup
+        update_info = manager.check_for_updates()
+        if update_info:
+            # Download in background, but don't install yet (user can manually check)
+            manager.download_updates(update_info)
+    except Exception:
+        # Silently fail - don't block app startup
+        pass
 
 if __name__ == '__main__':
+    # Initialize Velopack (must be called early)
+    velopack.App().run()
+
+    # Check for updates on startup (non-blocking)
+    update_app()
+
+    # Start the main application
     main()
