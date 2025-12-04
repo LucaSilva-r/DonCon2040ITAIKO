@@ -85,7 +85,7 @@ jobs:
             -v ${{ github.event.inputs.version }} `
             -p "DrumMonitor\dist\ITAiko Drum Monitor" `
             -e "${{ matrix.exe_name }}" `
-            --packId ITAIKO-${{ matrix.platform }} `
+            --packId ITAIKO `
             -u ITAIKO
 
       - name: Create Velopack Release (Unix)
@@ -93,8 +93,7 @@ jobs:
         env:
           VERSION: ${{ github.event.inputs.version }}
           EXE_NAME: ${{ matrix.exe_name }}
-          PLATFORM: ${{ matrix.platform }}
-        run: vpk pack -v "${VERSION}" -p "DrumMonitor/dist/ITAiko Drum Monitor" -e "${EXE_NAME}" --packId "ITAIKO-${PLATFORM}" -u ITAIKO
+        run: vpk pack -v "${VERSION}" -p "DrumMonitor/dist/ITAiko Drum Monitor" -e "${EXE_NAME}" --packId ITAIKO -u ITAIKO
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
