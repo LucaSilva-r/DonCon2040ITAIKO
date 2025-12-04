@@ -123,4 +123,4 @@ jobs:
             --tag v${{ github.event.inputs.version }} \
             --releaseName "ITAiko Drum Monitor v${{ github.event.inputs.version }}" \
             --token ${{ secrets.GITHUB_TOKEN }} \
-            --releaseDir all-releases
+            -o all-releases
