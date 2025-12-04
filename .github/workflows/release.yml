@@ -98,29 +98,35 @@ jobs:
           path: Releases/
           retention-days: 1
 
-  release:
-    needs: build
-    runs-on: ubuntu-latest
+release:
+  needs: build
+  runs-on: ubuntu-latest
 
-    steps:
-      - name: Download All Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: all-releases
+  steps:
+    - name: Download All Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
 
-      - name: Setup .NET (for Velopack CLI)
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
+    - name: Flatten Release Files
+      run: |
+        mkdir -p all-releases
+        find artifacts -type f -exec cp {} all-releases/ \;
+        ls -la all-releases/
 
-      - name: Install Velopack CLI
-        run: dotnet tool install -g vpk
+    - name: Setup .NET (for Velopack CLI)
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
 
-      - name: Create GitHub Release
-        run: |
-          vpk upload github \
-            --repoUrl https://github.com/${{ github.repository }} \
-            --tag v${{ github.event.inputs.version }} \
-            --releaseName "ITAiko Drum Monitor v${{ github.event.inputs.version }}" \
-            --token ${{ secrets.GITHUB_TOKEN }} \
-            -o all-releases
+    - name: Install Velopack CLI
+      run: dotnet tool install -g vpk
+
+    - name: Create GitHub Release
+      run: |
+        vpk upload github \
+          --repoUrl https://github.com/${{ github.repository }} \
+          --tag v${{ github.event.inputs.version }} \
+          --releaseName "ITAiko Drum Monitor v${{ github.event.inputs.version }}" \
+          --token ${{ secrets.GITHUB_TOKEN }} \
+          -o all-releases
