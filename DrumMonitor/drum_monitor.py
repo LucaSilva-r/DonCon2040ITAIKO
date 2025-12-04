@@ -20,172 +20,8 @@ from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtGui import QFont, QPainter, QColor, QPen, QBrush
 import time
 
-
-class SerialConfigHelper:
-    """Helper class for DonCon2040 serial configuration protocol"""
-
-    def __init__(self, serial_port):
-        self.ser = serial_port
-
-    def send_command(self, command):
-        """Send a command code"""
-        self.ser.write(f"{command}\n".encode())
-        self.ser.flush()
-
-    def read_all_settings(self):
-        """Read all settings from device (sends 1000)"""
-        # Clear any pending data
-        self.ser.reset_input_buffer()
-
-        self.send_command(1000)
-        time.sleep(0.3)  # Wait for response
-
-        settings = {}
-        while self.ser.in_waiting:
-            line = self.ser.readline().decode().strip()
-            if ':' in line:
-                try:
-                    key, value = line.split(':')
-                    settings[int(key)] = int(value)
-                except ValueError:
-                    continue
-
-        return settings
-
-    def write_settings(self, settings_dict):
-        """Write settings to device (sends 1002 + key:value pairs)"""
-        self.send_command(1002)  # Enter write mode
-        time.sleep(0.1)
-
-        # Send all 18 settings space-separated (14 basic + 4 cutoff thresholds)
-        settings_str = ' '.join([f"{k}:{v}" for k, v in sorted(settings_dict.items())])
-        self.ser.write(f"{settings_str}\n".encode())
-        self.ser.flush()
-        time.sleep(0.1)
-
-    def save_to_flash(self):
-        """Save settings to flash (sends 1001)"""
-        self.send_command(1001)
-        time.sleep(0.5)
-
-    def start_streaming(self):
-        """Start sensor data streaming (sends 2000)"""
-        self.send_command(2000)
-        time.sleep(0.1)
-
-    def stop_streaming(self):
-        """Stop sensor data streaming (sends 2001)"""
-        self.send_command(2001)
-        time.sleep(0.1)
-
-
-class DrumVisualWidget(QWidget):
-    """Custom widget that draws a visual representation of the Taiko drum"""
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setMinimumSize(600, 600)
-        self.setMaximumSize(800, 800)
-
-        # Current trigger states for each pad
-        self.triggered = [False, False, False, False]  # Ka_L, Don_L, Don_R, Ka_R
-
-        # Colors matching real Taiko no Tatsujin
-        self.colors = {
-            'ka_left': QColor(107, 189, 198),      # Katsu cyan (active)
-            'don_left': QColor(255, 66, 33),       # Don red (active)
-            'don_right': QColor(255, 66, 33),      # Don red (active)
-            'ka_right': QColor(107, 189, 198)      # Katsu cyan (active)
-        }
-
-        # Dim colors for non-triggered state (darkened by ~70%)
-        self.dim_colors = {
-            'ka_left': QColor(32, 57, 59),         # Katsu cyan (dim)
-            'don_left': QColor(77, 20, 10),        # Don red (dim)
-            'don_right': QColor(77, 20, 10),       # Don red (dim)
-            'ka_right': QColor(32, 57, 59)         # Katsu cyan (dim)
-        }
-
-    def set_trigger_states(self, ka_left, don_left, don_right, ka_right):
-        """Update trigger states and redraw"""
-        self.triggered = [ka_left, don_left, don_right, ka_right]
-        self.update()  # Trigger a repaint
-
-    def paintEvent(self, event):
-        """Draw the drum"""
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
-
-        # Get widget dimensions
-        width = self.width()
-        height = self.height()
-        center_x = width // 2
-        center_y = height // 2
-
-        # Calculate drum dimensions (leave more margin for labels)
-        drum_radius = min(width, height) // 2 - 100
-        face_radius = int(drum_radius * 0.7)
-        rim_width = drum_radius - face_radius
-
-        # Draw rim sections (Ka pads)
-        # Left rim (Ka Left)
-        color_ka_left = self.colors['ka_left'] if self.triggered[0] else self.dim_colors['ka_left']
-        painter.setBrush(QBrush(color_ka_left))
-        painter.setPen(QPen(QColor(50, 50, 50), 3))
-        painter.drawPie(center_x - drum_radius, center_y - drum_radius,
-                       drum_radius * 2, drum_radius * 2,
-                       90 * 16, 180 * 16)  # Left half (90° to 270°)
-
-        # Right rim (Ka Right)
-        color_ka_right = self.colors['ka_right'] if self.triggered[3] else self.dim_colors['ka_right']
-        painter.setBrush(QBrush(color_ka_right))
-        painter.drawPie(center_x - drum_radius, center_y - drum_radius,
-                       drum_radius * 2, drum_radius * 2,
-                       270 * 16, 180 * 16)  # Right half (270° to 90°)
-
-        # Draw face sections (Don pads) - split vertically
-        # Left face (Don Left)
-        color_don_left = self.colors['don_left'] if self.triggered[1] else self.dim_colors['don_left']
-        painter.setBrush(QBrush(color_don_left))
-        painter.setPen(QPen(QColor(50, 50, 50), 3))
-        painter.drawPie(center_x - face_radius, center_y - face_radius,
-                       face_radius * 2, face_radius * 2,
-                       90 * 16, 180 * 16)  # Left half
-
-        # Right face (Don Right)
-        color_don_right = self.colors['don_right'] if self.triggered[2] else self.dim_colors['don_right']
-        painter.setBrush(QBrush(color_don_right))
-        painter.drawPie(center_x - face_radius, center_y - face_radius,
-                       face_radius * 2, face_radius * 2,
-                       270 * 16, 180 * 16)  # Right half
-
-        # Draw center dividing line
-        painter.setPen(QPen(QColor(50, 50, 50), 4))
-        painter.drawLine(center_x, center_y - face_radius, center_x, center_y + face_radius)
-
-        # Draw labels with better positioning
-        painter.setPen(QPen(QColor(255, 255, 255), 2))
-        font = painter.font()
-        font.setPointSize(12)
-        font.setBold(True)
-        painter.setFont(font)
-
-        # Ka Left label (positioned to the left of the drum)
-        ka_left_text = "Ka Left (Rim)"
-        painter.drawText(20, center_y + 5, ka_left_text)
-
-        # Ka Right label (positioned to the right of the drum)
-        ka_right_text = "Ka Right (Rim)"
-        text_width = painter.fontMetrics().horizontalAdvance(ka_right_text)
-        painter.drawText(width - text_width - 20, center_y + 5, ka_right_text)
-
-        # Don Left label (on the left face)
-        don_left_text = "Don Left"
-        painter.drawText(center_x - face_radius // 2 - 35, center_y + 5, don_left_text)
-
-        # Don Right label (on the right face)
-        don_right_text = "Don Right"
-        painter.drawText(center_x + 15, center_y + 5, don_right_text)
+from serial_config_helper import SerialConfigHelper
+from drum_visual_widget import DrumVisualWidget
 
 
 class DrumMonitor(QMainWindow):
@@ -358,11 +194,13 @@ class DrumMonitor(QMainWindow):
         # Data logging
         self.log_checkbox = QCheckBox("Log to CSV")
         self.log_checkbox.stateChanged.connect(self.toggle_logging)
+        self.log_checkbox.setToolTip("Record all incoming sensor data to a CSV file for later analysis.")
         layout.addWidget(self.log_checkbox)
 
         # Clear button
         clear_btn = QPushButton("Clear")
         clear_btn.clicked.connect(self.clear_data)
+        clear_btn.setToolTip("Clear all data from the graphs.")
         layout.addWidget(clear_btn)
 
         layout.addStretch()
@@ -385,6 +223,7 @@ class DrumMonitor(QMainWindow):
         self.config_widgets[0] = QSpinBox()  # Trigger threshold
         self.config_widgets[0].setRange(0, 4095)
         self.config_widgets[0].setValue(800)
+        self.config_widgets[0].setToolTip("The minimum ADC reading required to register a light hit on this pad.")
         don_left_layout.addRow("Light Trigger:", self.config_widgets[0])
 
         self.config_widgets[10] = QSpinBox()  # Double trigger threshold
@@ -392,11 +231,13 @@ class DrumMonitor(QMainWindow):
         self.config_widgets[10].setValue(1200)
         self.config_widgets[10].setEnabled(False)
         self.config_widgets[10].setStyleSheet("QSpinBox { background-color: #2a2a2a; color: #666666; }")
+        self.config_widgets[10].setToolTip("The ADC reading required to bypass debounce for an immediate second hit. Only active when 'Allow double inputs' is On.")
         don_left_layout.addRow("Heavy Trigger:", self.config_widgets[10])
 
         self.config_widgets[14] = QSpinBox()  # Cutoff threshold
         self.config_widgets[14].setRange(0, 4095)
         self.config_widgets[14].setValue(4095)
+        self.config_widgets[14].setToolTip("ADC readings above this value will be ignored. Useful for filtering out noise from faulty sensors.")
         don_left_layout.addRow("Cutoff (Ignore Above):", self.config_widgets[14])
 
         don_left_group.setLayout(don_left_layout)
@@ -409,6 +250,7 @@ class DrumMonitor(QMainWindow):
         self.config_widgets[1] = QSpinBox()  # Trigger threshold
         self.config_widgets[1].setRange(0, 4095)
         self.config_widgets[1].setValue(800)
+        self.config_widgets[1].setToolTip("The minimum ADC reading required to register a light hit on this pad.")
         ka_left_layout.addRow("Light Trigger:", self.config_widgets[1])
 
         self.config_widgets[11] = QSpinBox()  # Double trigger threshold
@@ -416,11 +258,13 @@ class DrumMonitor(QMainWindow):
         self.config_widgets[11].setValue(1200)
         self.config_widgets[11].setEnabled(False)
         self.config_widgets[11].setStyleSheet("QSpinBox { background-color: #2a2a2a; color: #666666; }")
+        self.config_widgets[11].setToolTip("The ADC reading required to bypass debounce for an immediate second hit. Only active when 'Allow double inputs' is On.")
         ka_left_layout.addRow("Heavy Trigger:", self.config_widgets[11])
 
         self.config_widgets[15] = QSpinBox()  # Cutoff threshold
         self.config_widgets[15].setRange(0, 4095)
         self.config_widgets[15].setValue(4095)
+        self.config_widgets[15].setToolTip("ADC readings above this value will be ignored. Useful for filtering out noise from faulty sensors.")
         ka_left_layout.addRow("Cutoff (Ignore Above):", self.config_widgets[15])
 
         ka_left_group.setLayout(ka_left_layout)
@@ -433,6 +277,7 @@ class DrumMonitor(QMainWindow):
         self.config_widgets[2] = QSpinBox()  # Trigger threshold
         self.config_widgets[2].setRange(0, 4095)
         self.config_widgets[2].setValue(800)
+        self.config_widgets[2].setToolTip("The minimum ADC reading required to register a light hit on this pad.")
         don_right_layout.addRow("Light Trigger:", self.config_widgets[2])
 
         self.config_widgets[12] = QSpinBox()  # Double trigger threshold
@@ -440,11 +285,13 @@ class DrumMonitor(QMainWindow):
         self.config_widgets[12].setValue(1200)
         self.config_widgets[12].setEnabled(False)
         self.config_widgets[12].setStyleSheet("QSpinBox { background-color: #2a2a2a; color: #666666; }")
+        self.config_widgets[12].setToolTip("The ADC reading required to bypass debounce for an immediate second hit. Only active when 'Allow double inputs' is On.")
         don_right_layout.addRow("Heavy Trigger:", self.config_widgets[12])
 
         self.config_widgets[16] = QSpinBox()  # Cutoff threshold
         self.config_widgets[16].setRange(0, 4095)
         self.config_widgets[16].setValue(4095)
+        self.config_widgets[16].setToolTip("ADC readings above this value will be ignored. Useful for filtering out noise from faulty sensors.")
         don_right_layout.addRow("Cutoff (Ignore Above):", self.config_widgets[16])
 
         don_right_group.setLayout(don_right_layout)
@@ -457,6 +304,7 @@ class DrumMonitor(QMainWindow):
         self.config_widgets[3] = QSpinBox()  # Trigger threshold
         self.config_widgets[3].setRange(0, 4095)
         self.config_widgets[3].setValue(800)
+        self.config_widgets[3].setToolTip("The minimum ADC reading required to register a light hit on this pad.")
         ka_right_layout.addRow("Light Trigger:", self.config_widgets[3])
 
         self.config_widgets[13] = QSpinBox()  # Double trigger threshold
@@ -464,11 +312,13 @@ class DrumMonitor(QMainWindow):
         self.config_widgets[13].setValue(1200)
         self.config_widgets[13].setEnabled(False)
         self.config_widgets[13].setStyleSheet("QSpinBox { background-color: #2a2a2a; color: #666666; }")
+        self.config_widgets[13].setToolTip("The ADC reading required to bypass debounce for an immediate second hit. Only active when 'Allow double inputs' is On.")
         ka_right_layout.addRow("Heavy Trigger:", self.config_widgets[13])
 
         self.config_widgets[17] = QSpinBox()  # Cutoff threshold
         self.config_widgets[17].setRange(0, 4095)
         self.config_widgets[17].setValue(4095)
+        self.config_widgets[17].setToolTip("ADC readings above this value will be ignored. Useful for filtering out noise from faulty sensors.")
         ka_right_layout.addRow("Cutoff (Ignore Above):", self.config_widgets[17])
 
         ka_right_group.setLayout(ka_right_layout)
@@ -484,6 +334,7 @@ class DrumMonitor(QMainWindow):
         self.config_widgets[9].addItems(["Off", "On"])
         self.config_widgets[9].currentIndexChanged.connect(self.on_double_mode_changed)
         self.config_widgets[9].setCurrentIndex(0)  # This will trigger on_double_mode_changed
+        self.config_widgets[9].setToolTip("When On, if a hit surpasses the 'Heavy Trigger' threshold, it allows another hit to be registered immediately, bypassing the standard debounce timing. This is useful for playing fast rolls.")
         global_layout.addRow("Allow double inputs (heavy hits):", self.config_widgets[9])
 
         global_group.setLayout(global_layout)
@@ -496,26 +347,31 @@ class DrumMonitor(QMainWindow):
         self.config_widgets[8] = QSpinBox()  # Individual Debounce (moved to top)
         self.config_widgets[8].setRange(0, 1000)
         self.config_widgets[8].setValue(25)
+        self.config_widgets[8].setToolTip("Determines how long the drum reports a key as being pressed to the operating system. Some simulators require a longer hold time to detect a valid key press.")
         timing_layout.addRow("Key Hold Time:", self.config_widgets[8])
 
         self.config_widgets[4] = QSpinBox()  # Don Debounce
         self.config_widgets[4].setRange(0, 1000)
         self.config_widgets[4].setValue(30)
+        self.config_widgets[4].setToolTip("The cooldown period after a Don (face) hit on one side before another Don hit can be registered on the OTHER side. Prevents accidental double inputs.")
         timing_layout.addRow("Don Debounce:", self.config_widgets[4])
 
         self.config_widgets[5] = QSpinBox()  # Kat Debounce
         self.config_widgets[5].setRange(0, 1000)
         self.config_widgets[5].setValue(30)
+        self.config_widgets[5].setToolTip("The cooldown period after a Ka (rim) hit on one side before another Ka hit can be registered on the OTHER side. Prevents accidental double inputs.")
         timing_layout.addRow("Kat Debounce:", self.config_widgets[5])
 
         self.config_widgets[6] = QSpinBox()  # Crosstalk Debounce
         self.config_widgets[6].setRange(0, 1000)
         self.config_widgets[6].setValue(30)
+        self.config_widgets[6].setToolTip("The cooldown period preventing a Don (face) and Ka (rim) hit from being registered at the same time. Helps eliminate unintended inputs from vibrations.")
         timing_layout.addRow("Crosstalk Debounce:", self.config_widgets[6])
 
         self.config_widgets[7] = QSpinBox()  # Key Hold Time
         self.config_widgets[7].setRange(0, 1000)
         self.config_widgets[7].setValue(19)
+        self.config_widgets[7].setToolTip("The cooldown period for a single pad before it can be hit again. Prevents a single physical hit from registering as multiple inputs.")
         timing_layout.addRow("Individual key debounce:", self.config_widgets[7])
 
         timing_group.setLayout(timing_layout)
@@ -526,14 +382,17 @@ class DrumMonitor(QMainWindow):
 
         read_btn = QPushButton("Read from Device")
         read_btn.clicked.connect(self.read_config_from_device)
+        read_btn.setToolTip("Load the current settings from the connected drum.")
         button_layout.addWidget(read_btn)
 
         write_btn = QPushButton("Write to Device && Save")
         write_btn.clicked.connect(self.write_config_to_device)
+        write_btn.setToolTip("Apply the current settings to the drum and save them to its internal flash memory.")
         button_layout.addWidget(write_btn)
 
         reset_btn = QPushButton("Reset to Defaults")
         reset_btn.clicked.connect(self.reset_config_to_defaults)
+        reset_btn.setToolTip("Reset all settings in this UI to their default values. Does not write to the device.")
         button_layout.addWidget(reset_btn)
 
         button_layout.addStretch()
