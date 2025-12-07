@@ -188,7 +188,7 @@ Drum::Drum(const Config &config) : m_config(config), m_roll_counter(config.roll_
             } else if constexpr (std::is_same_v<T, Config::ExternalAdc>) {
                 m_adc = std::make_unique<ExternalAdc>(config);
             } else {
-                static_assert(false, "Unknown ADC type!");
+                throw std::runtime_error("Unknown GPIO type!");
             }
         },
         m_config.adc_config);
