@@ -14,18 +14,41 @@ jobs:
             contents: read
 
         steps:
-            - name: Checkout
+            - name: Checkout Repository
               uses: actions/checkout@v4
 
-            - name: Compile ITAIKO
-              id: build
-              uses: samyarsadat/Pico-Build-Action@v1
+            - name: Install ARM GCC Toolchain
+              run: |
+                sudo apt-get update
+                sudo apt-get install -y gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib
+                arm-none-eabi-gcc --version
+
+            - name: Checkout Pico SDK
+              uses: actions/checkout@v4
               with:
-                  source_dir: "."
-                  cmake_args: "-DCMAKE_BUILD_TYPE=Debug -DPICO_SDK_FETCH_FROM_GIT_TAG=2.2.0"
+                  repository: raspberrypi/pico-sdk
+                  ref: 2.2.0
+                  path: pico-sdk
+                  submodules: recursive
+
+            - name: Build Firmware
+              run: |
+                mkdir -p build
+                cd build
+                cmake .. \
+                  -DCMAKE_BUILD_TYPE=Release \
+                  -DPICO_SDK_PATH=${{ github.workspace }}/pico-sdk \
+                  -DPICO_BOARD=waveshare_rp2040_zero
+                make -j$(nproc)
+                echo "=== Build Output Sizes ==="
+                ls -lh *.uf2 *.elf 2>/dev/null || true
 
             - name: Upload Build Artifacts
               uses: actions/upload-artifact@v4
               with:
-                  name: workspace_artifacts
-                  path: ${{steps.build.outputs.output_dir}}
+                  name: ITAIKO-firmware
+                  path: |
+                    build/*.uf2
+                    build/*.elf
+                    build/*.bin
+                    build/*.hex
