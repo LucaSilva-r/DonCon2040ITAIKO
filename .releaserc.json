@@ -1,0 +1,15 @@
+{
+  "branches": ["main"],
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    ["@semantic-release/github", {
+      "assets": [
+        {"path": "build/*.uf2", "label": "Firmware UF2"},
+        {"path": "build/*.elf", "label": "Firmware ELF"},
+        {"path": "build/*.bin", "label": "Firmware BIN"},
+        {"path": "build/*.hex", "label": "Firmware HEX"}
+      ]
+    }]
+  ]
+}
