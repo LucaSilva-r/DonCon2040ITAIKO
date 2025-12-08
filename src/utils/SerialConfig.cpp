@@ -129,8 +129,8 @@ void SerialConfig::handleWriteData(const char *data) {
 }
 
 void SerialConfig::sendAllSettings() {
-    // Send 46 values: 9 hidtaiko-compatible + 5 extended (double trigger) + 4 extended (cutoff thresholds) + 24 extended (key mappings) + 4 extended (ADC channels)
-    for (int i = 0; i < 46; i++) {
+    // Send 42 values: 9 hidtaiko-compatible + 5 extended (double trigger) + 4 extended (cutoff thresholds) + 24 extended (key mappings)
+    for (int i = 0; i < 42; i++) {
         uint16_t value = getSettingByKey(i);
         printf("%d:%d\n", i, value);
         stdio_flush();
@@ -235,16 +235,6 @@ uint16_t SerialConfig::getSettingByKey(int key) {
         return m_settings_store.getControllerKeys().l3;
     case 41: // Controller R3
         return m_settings_store.getControllerKeys().r3;
-
-    // ADC Channel Mappings (Keys 42-45)
-    case 42: // ADC Channel Don Left
-        return m_settings_store.getAdcChannels().don_left;
-    case 43: // ADC Channel Ka Left
-        return m_settings_store.getAdcChannels().ka_left;
-    case 44: // ADC Channel Don Right
-        return m_settings_store.getAdcChannels().don_right;
-    case 45: // ADC Channel Ka Right
-        return m_settings_store.getAdcChannels().ka_right;
 
     default:
         return 0;
@@ -475,32 +465,6 @@ void SerialConfig::setSettingByKey(int key, uint16_t value) {
         auto controller_keys = m_settings_store.getControllerKeys();
         controller_keys.r3 = static_cast<uint8_t>(value);
         m_settings_store.setControllerKeys(controller_keys);
-        break;
-    }
-
-    // ADC Channel Mappings (Keys 42-45)
-    case 42: { // ADC Channel Don Left
-        auto adc_channels = m_settings_store.getAdcChannels();
-        adc_channels.don_left = static_cast<uint8_t>(value);
-        m_settings_store.setAdcChannels(adc_channels);
-        break;
-    }
-    case 43: { // ADC Channel Ka Left
-        auto adc_channels = m_settings_store.getAdcChannels();
-        adc_channels.ka_left = static_cast<uint8_t>(value);
-        m_settings_store.setAdcChannels(adc_channels);
-        break;
-    }
-    case 44: { // ADC Channel Don Right
-        auto adc_channels = m_settings_store.getAdcChannels();
-        adc_channels.don_right = static_cast<uint8_t>(value);
-        m_settings_store.setAdcChannels(adc_channels);
-        break;
-    }
-    case 45: { // ADC Channel Ka Right
-        auto adc_channels = m_settings_store.getAdcChannels();
-        adc_channels.ka_right = static_cast<uint8_t>(value);
-        m_settings_store.setAdcChannels(adc_channels);
         break;
     }
 

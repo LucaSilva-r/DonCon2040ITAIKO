@@ -34,7 +34,6 @@ SettingsStore::SettingsStore()
                      .drum_keys_p1 = Config::Default::drum_keys_p1,
                      .drum_keys_p2 = Config::Default::drum_keys_p2,
                      .controller_keys = Config::Default::controller_keys,
-                     .adc_channels = Config::Default::drum_config.adc_channels,
                      ._padding = {}}) {
     uint32_t current_page = m_flash_offset + m_flash_size - m_store_size;
     bool found_valid = false;
@@ -218,20 +217,6 @@ void SettingsStore::setControllerKeys(const ControllerKeys &keys) {
     m_dirty = true;
 }
 ControllerKeys SettingsStore::getControllerKeys() const { return m_store_cache.controller_keys; }
-
-void SettingsStore::setAdcChannels(const Peripherals::Drum::Config::AdcChannels &channels) {
-    if (m_store_cache.adc_channels.don_left != channels.don_left ||
-        m_store_cache.adc_channels.don_right != channels.don_right ||
-        m_store_cache.adc_channels.ka_left != channels.ka_left ||
-        m_store_cache.adc_channels.ka_right != channels.ka_right) {
-        m_store_cache.adc_channels = channels;
-        m_dirty = true;
-
-        // ADC channels require reboot to take effect since Drum pads are initialized in constructor
-        scheduleReboot();
-    }
-}
-Peripherals::Drum::Config::AdcChannels SettingsStore::getAdcChannels() const { return m_store_cache.adc_channels; }
 
 void SettingsStore::store() {
     if (m_dirty) {
