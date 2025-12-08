@@ -72,10 +72,10 @@ namespace Doncon::Utils {
  * 39: Controller Share Key (HID keycode)
  * 40: Controller L3 Key (HID keycode)
  * 41: Controller R3 Key (HID keycode)
- * 42: ADC Channel Don Left (0-3 for internal ADC, 0-7 for MCP3204)
- * 43: ADC Channel Ka Left (0-3 for internal ADC, 0-7 for MCP3204)
- * 44: ADC Channel Don Right (0-3 for internal ADC, 0-7 for MCP3204)
- * 45: ADC Channel Ka Right (0-3 for internal ADC, 0-7 for MCP3204)
+ * 42: ADC Channel Don Left (0-3)
+ * 43: ADC Channel Ka Left (0-3)
+ * 44: ADC Channel Don Right (0-3)
+ * 45: ADC Channel Ka Right (0-3)
  *
  * Special Output:
  * Version:Firmware Version String (e.g. "Version:0.0.0")
