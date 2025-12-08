@@ -137,7 +137,13 @@ int main() {
 
     stdio_init_all();
 
-    Peripherals::Drum drum(Config::Default::drum_config);
+    // Initialize SettingsStore first to get saved ADC channel configuration
+    auto settings_store = std::make_shared<Utils::SettingsStore>();
+
+    // Create drum config with ADC channels from settings
+    auto drum_config = Config::Default::drum_config;
+    drum_config.adc_channels = settings_store->getAdcChannels();
+    Peripherals::Drum drum(drum_config);
 
     Utils::InputState input_state;
     const auto checkHotkey = [&input_state]() {
@@ -160,7 +166,6 @@ int main() {
         return false;
     };
 
-    auto settings_store = std::make_shared<Utils::SettingsStore>();
     Utils::InputReport input_report(settings_store);
 
     const auto mode = settings_store->getUsbMode();
@@ -183,6 +188,7 @@ int main() {
         drum.setDoubleTriggerMode(settings_store->getDoubleTriggerMode());
         drum.setDoubleThresholds(settings_store->getDoubleTriggerThresholds());
         drum.setCutoffThresholds(settings_store->getCutoffThresholds());
+        drum.setAdcChannels(settings_store->getAdcChannels());
     };
 
     Utils::Menu menu(settings_store);

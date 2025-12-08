@@ -20,33 +20,29 @@ class SettingsStore {
     const static uint8_t m_magic_byte = 0x39;
 
     struct __attribute((packed, aligned(1))) Storecache {
-        uint8_t in_use;
-        usb_mode_t usb_mode;
-        Peripherals::Drum::Config::Thresholds trigger_thresholds;
-        uint8_t led_brightness;
-        bool led_enable_player_color;
-        uint16_t debounce_delay;
-        Peripherals::Drum::Config::DoubleTriggerMode double_trigger_mode;
-        Peripherals::Drum::Config::Thresholds double_trigger_thresholds;
-        Peripherals::Drum::Config::Thresholds cutoff_thresholds;
-        uint16_t don_debounce;
-        uint16_t kat_debounce;
-        uint16_t crosstalk_debounce;
-        uint16_t key_timeout_ms;
-        Peripherals::Drum::Config::WeightedComparisonMode weighted_comparison_mode;
-        DrumKeys drum_keys_p1;
-        DrumKeys drum_keys_p2;
-        ControllerKeys controller_keys;
-
-        std::array<uint8_t, m_store_size - sizeof(uint8_t) - sizeof(usb_mode_t) -
-                                sizeof(Peripherals::Drum::Config::Thresholds) - sizeof(uint8_t) - sizeof(bool) -
-                                sizeof(uint16_t) - sizeof(Peripherals::Drum::Config::DoubleTriggerMode) -
-                                sizeof(Peripherals::Drum::Config::Thresholds) - sizeof(uint16_t) - sizeof(uint16_t) -
-                                sizeof(uint16_t) - sizeof(uint16_t) -
-                                sizeof(Peripherals::Drum::Config::WeightedComparisonMode) -
-                                sizeof(DrumKeys) - sizeof(DrumKeys) - sizeof(ControllerKeys) -
-                                sizeof(Peripherals::Drum::Config::Thresholds)>
-            _padding;
+        union {
+            struct __attribute((packed)) {
+                uint8_t in_use;
+                usb_mode_t usb_mode;
+                Peripherals::Drum::Config::Thresholds trigger_thresholds;
+                uint8_t led_brightness;
+                bool led_enable_player_color;
+                uint16_t debounce_delay;
+                Peripherals::Drum::Config::DoubleTriggerMode double_trigger_mode;
+                Peripherals::Drum::Config::Thresholds double_trigger_thresholds;
+                Peripherals::Drum::Config::Thresholds cutoff_thresholds;
+                uint16_t don_debounce;
+                uint16_t kat_debounce;
+                uint16_t crosstalk_debounce;
+                uint16_t key_timeout_ms;
+                Peripherals::Drum::Config::WeightedComparisonMode weighted_comparison_mode;
+                DrumKeys drum_keys_p1;
+                DrumKeys drum_keys_p2;
+                ControllerKeys controller_keys;
+                Peripherals::Drum::Config::AdcChannels adc_channels;
+            };
+            uint8_t raw[m_store_size];
+        };
     };
     static_assert(sizeof(Storecache) == m_store_size);
 
@@ -112,6 +108,9 @@ class SettingsStore {
 
     void setControllerKeys(const ControllerKeys &keys);
     [[nodiscard]] ControllerKeys getControllerKeys() const;
+
+    void setAdcChannels(const Peripherals::Drum::Config::AdcChannels &channels);
+    [[nodiscard]] Peripherals::Drum::Config::AdcChannels getAdcChannels() const;
 
     void scheduleReboot(bool bootsel = false);
 

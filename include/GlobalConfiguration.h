@@ -73,19 +73,19 @@ const I2c i2c_config = {
 const Peripherals::Drum::Config drum_config = {
     .trigger_thresholds =
         {
-            .don_left = 800,
-            .ka_left = 800,
-            .don_right = 800,
-            .ka_right = 800,
+            .don_left = 100,
+            .ka_left = 100,
+            .don_right = 100,
+            .ka_right = 100,
         },
 
     .double_trigger_mode = Peripherals::Drum::Config::DoubleTriggerMode::Off,
     .double_trigger_thresholds =
         {
-            .don_left = 3000,
-            .ka_left = 2500,
-            .don_right = 3000,
-            .ka_right = 2500,
+            .don_left = 1500,
+            .ka_left = 1500,
+            .don_right = 1500,
+            .ka_right = 1500,
         },
 
     .cutoff_thresholds =
@@ -102,7 +102,7 @@ const Peripherals::Drum::Config drum_config = {
     .don_debounce = 30,
     .kat_debounce = 30,
     .crosstalk_debounce = 30,
-    .key_timeout_ms = 19,
+    .key_timeout_ms = 20,
     .roll_counter_timeout_ms = 500,
 
     .adc_channels =
@@ -195,4 +195,4 @@ const Peripherals::Display::Config display_config = {
 } // namespace Default
 } // namespace Doncon::Config
 
-#endif // GLOBALCONFIGURATION_H_ffffjjjjjjkkkkkkddddd
+#endif // GLOBALCONFIGURATION_H_

@@ -480,6 +480,14 @@ void Drum::setWeightedComparisonMode(const Config::WeightedComparisonMode mode) 
     m_config.weighted_comparison_mode = mode;
 }
 
+void Drum::setAdcChannels(const Config::AdcChannels &channels) {
+    m_config.adc_channels = channels;
+    m_pads.at(Id::DON_LEFT).setChannel(channels.don_left);
+    m_pads.at(Id::DON_RIGHT).setChannel(channels.don_right);
+    m_pads.at(Id::KA_LEFT).setChannel(channels.ka_left);
+    m_pads.at(Id::KA_RIGHT).setChannel(channels.ka_right);
+}
+
 float Drum::calculateTriggerRatio(const int32_t delta, const uint16_t threshold) const {
     if (threshold == 0) {
         return 0.0f;

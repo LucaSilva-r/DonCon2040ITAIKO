@@ -114,6 +114,7 @@ class Drum {
 
         void setLastTrigger(uint32_t value) { m_last_trigger = value; };
         void setLastAdcValue(int32_t value) { m_last_adc_value = value; };
+        void setChannel(uint8_t channel) { m_channel = channel; };
         void setState(bool state, uint16_t debounce_delay);
         void trigger();
         void updateTimeout(uint16_t key_timeout);
@@ -213,6 +214,7 @@ class Drum {
     void setDoubleThresholds(const Config::Thresholds &thresholds);
     void setCutoffThresholds(const Config::Thresholds &thresholds);
     void setWeightedComparisonMode(Config::WeightedComparisonMode mode);
+    void setAdcChannels(const Config::AdcChannels &channels);
 };
 
 } // namespace Doncon::Peripherals
