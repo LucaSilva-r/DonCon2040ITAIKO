@@ -7,3 +7,6 @@ research/
 hidtaiko src/
 debug/debug.rar
 dist
+scripts/key.pem
+scripts/serial.txt
+scripts/sig.bin

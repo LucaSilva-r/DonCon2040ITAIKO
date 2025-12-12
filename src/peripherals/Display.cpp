@@ -49,9 +49,55 @@ Display::Display(const Config &config) : m_config(config) {
     m_display.external_vcc = false;
     ssd1306_init(&m_display, 128, 64, m_config.i2c_address, m_config.i2c_block);
     ssd1306_clear(&m_display);
+    m_last_activity_time = to_ms_since_boot(get_absolute_time());
 }
 
-void Display::setInputState(const Utils::InputState &state) { m_input_state = state; }
+void Display::setInputState(const Utils::InputState &state) {
+    // Check for any new activity to reset the screen timeout
+    if (hasActivity(state)) {
+        m_last_activity_time = to_ms_since_boot(get_absolute_time());
+
+        // Wake up screen if it was off
+        if (m_screen_off) {
+            m_screen_off = false;
+            ssd1306_poweron(&m_display);
+        }
+    }
+
+    m_last_input_state = m_input_state;
+    m_input_state = state;
+}
+
+bool Display::hasActivity(const Utils::InputState &state) {
+    // Check for any drum hit (new trigger that wasn't triggered before)
+    if ((state.drum.don_left.triggered && !m_last_input_state.drum.don_left.triggered) ||
+        (state.drum.don_right.triggered && !m_last_input_state.drum.don_right.triggered) ||
+        (state.drum.ka_left.triggered && !m_last_input_state.drum.ka_left.triggered) ||
+        (state.drum.ka_right.triggered && !m_last_input_state.drum.ka_right.triggered)) {
+        return true;
+    }
+
+    // Check for any button press (new press that wasn't pressed before)
+    const auto &btn = state.controller.buttons;
+    const auto &last_btn = m_last_input_state.controller.buttons;
+    if ((btn.north && !last_btn.north) || (btn.south && !last_btn.south) || (btn.east && !last_btn.east) ||
+        (btn.west && !last_btn.west) || (btn.l && !last_btn.l) || (btn.r && !last_btn.r) ||
+        (btn.start && !last_btn.start) || (btn.select && !last_btn.select) || (btn.home && !last_btn.home) ||
+        (btn.share && !last_btn.share)) {
+        return true;
+    }
+
+    // Check for any dpad press
+    const auto &dpad = state.controller.dpad;
+    const auto &last_dpad = m_last_input_state.controller.dpad;
+    if ((dpad.up && !last_dpad.up) || (dpad.down && !last_dpad.down) || (dpad.left && !last_dpad.left) ||
+        (dpad.right && !last_dpad.right)) {
+        return true;
+    }
+
+    return false;
+}
+
 void Display::setUsbMode(usb_mode_t mode) { m_usb_mode = mode; };
 void Display::setPlayerId(uint8_t player_id) { m_player_id = player_id; };
 
@@ -168,16 +214,32 @@ void Display::drawMenuScreen() {
 }
 
 void Display::update() {
-    static const uint32_t interval_ms = 17; // Limit to ~60fps
-    static const uint32_t splash_duration_ms = 2000; // Show splash for 2 seconds
+    static const uint32_t interval_ms = 17;            // Limit to ~60fps
+    static const uint32_t splash_duration_ms = 2000;   // Show splash for 2 seconds
+    static const uint32_t screen_off_timeout_ms = 60000; // Turn off after 60 seconds of inactivity
 
     // Handle splash screen timeout
     if (m_state == State::Splash) {
         if (to_ms_since_boot(get_absolute_time()) - m_splash_start_time >= splash_duration_ms) {
             m_state = State::Idle; // Transition to idle after splash duration
+            m_last_activity_time = to_ms_since_boot(get_absolute_time()); // Reset activity timer
         } else {
             return; // Keep showing splash screen, don't update
         }
+    }
+
+    // Check for inactivity timeout (only in Idle state, not in Menu)
+    if (m_state == State::Idle && !m_screen_off) {
+        if (to_ms_since_boot(get_absolute_time()) - m_last_activity_time >= screen_off_timeout_ms) {
+            m_screen_off = true;
+            ssd1306_poweroff(&m_display);
+            return;
+        }
+    }
+
+    // Don't update display if screen is off
+    if (m_screen_off) {
+        return;
     }
 
     if (to_ms_since_boot(get_absolute_time()) - m_next_frame_time < interval_ms) {

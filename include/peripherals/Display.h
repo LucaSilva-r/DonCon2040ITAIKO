@@ -40,6 +40,12 @@ class Display {
     uint32_t m_next_frame_time{0};
     uint32_t m_splash_start_time{0};
 
+    // Inactivity screen off
+    uint32_t m_last_activity_time{0};
+    bool m_screen_off{false};
+    Utils::InputState m_last_input_state{};
+
+    bool hasActivity(const Utils::InputState &state);
     void drawIdleScreen();
     void drawMenuScreen();
     

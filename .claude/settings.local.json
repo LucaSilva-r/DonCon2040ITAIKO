@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet build:*)",
+      "Bash(dotnet run)",
+      "Bash(c:/Users/silvaluca/Documents/Git/DonCon2040ITAIKO/DrumMonitor/venv/Scripts/python.exe:*)",
+      "Bash(find:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
