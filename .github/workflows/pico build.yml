@@ -28,13 +28,21 @@ jobs:
           sudo apt-get install -y gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib
           arm-none-eabi-gcc --version
 
+      - name: Cache Pico SDK
+        id: cache-pico-sdk
+        uses: actions/cache@v4
+        with:
+          path: pico-sdk
+          key: pico-sdk-2.2.0
+
       - name: Checkout Pico SDK
+        if: steps.cache-pico-sdk.outputs.cache-hit != 'true'
         uses: actions/checkout@v4
         with:
-            repository: raspberrypi/pico-sdk
-            ref: 2.2.0
-            path: pico-sdk
-            submodules: recursive
+          repository: raspberrypi/pico-sdk
+          ref: 2.2.0
+          path: pico-sdk
+          submodules: recursive
 
       - name: Node.js Setup
         uses: actions/setup-node@v4
