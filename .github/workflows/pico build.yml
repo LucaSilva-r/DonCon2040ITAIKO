@@ -22,28 +22,18 @@ jobs:
         with:
           fetch-depth: 0 # Required for semantic-release to analyze commits
 
-      - name: Cache ARM GCC Toolchain
-        id: cache-arm-gcc
-        uses: actions/cache@v4
-        with:
-          path: /usr/share/gcc-arm-none-eabi
-          key: arm-gcc-toolchain-${{ runner.os }}
-
       - name: Install ARM GCC Toolchain
-        if: steps.cache-arm-gcc.outputs.cache-hit != 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib
-
-      - name: Verify ARM GCC
-        run: arm-none-eabi-gcc --version
+          arm-none-eabi-gcc --version
 
       - name: Cache Pico SDK
         id: cache-pico-sdk
         uses: actions/cache@v4
         with:
           path: pico-sdk
-          key: pico-sdk-2.2.0-${{ runner.os }}
+          key: pico-sdk-2.2.0
 
       - name: Checkout Pico SDK
         if: steps.cache-pico-sdk.outputs.cache-hit != 'true'
@@ -58,14 +48,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
-
-      - name: Cache Node modules
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: npm-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            npm-${{ runner.os }}-
 
       - name: Semantic Release (Dry Run)
         id: semantic
