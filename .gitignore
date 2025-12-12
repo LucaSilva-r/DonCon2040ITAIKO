@@ -10,3 +10,5 @@ dist
 scripts/key.pem
 scripts/serial.txt
 scripts/sig.bin
+lib/mbedtls
+lib/tinyusb
