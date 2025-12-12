@@ -98,3 +98,29 @@ jobs:
             @semantic-release/github
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push Firmware to Web Repository
+        # Only runs after a successful release
+        if: steps.semantic.outputs.new_release_published == 'true'
+        run: |
+          # Configure git
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+
+          # Clone the web repository
+          git clone https://x-access-token:${{ secrets.WEB_REPO_TOKEN }}@github.com/LucaSilva-r/ITAIKO-Web.git web-repo
+
+          # Create firmware directory if it doesn't exist
+          mkdir -p web-repo/public/firmware
+
+          # Copy the UF2 file with a consistent name
+          cp build/ITAIKO.uf2 web-repo/public/firmware/ITAIKO.uf2
+
+          # Create a version file for the web app to read
+          echo "${{ steps.semantic.outputs.new_release_version }}" > web-repo/public/firmware/version.txt
+
+          # Commit and push
+          cd web-repo
+          git add public/firmware/
+          git commit -m "chore: update firmware to v${{ steps.semantic.outputs.new_release_version }}" || echo "No changes to commit"
+          git push
