@@ -33,6 +33,8 @@ queue_t controller_input_queue;
 queue_t auth_challenge_queue;
 queue_t auth_signed_challenge_queue;
 
+std::shared_ptr<Utils::SettingsStore> g_settings_store;
+
 enum class ControlCommand : uint8_t {
     SetUsbMode,
     SetPlayerLed,
@@ -65,7 +67,7 @@ void core1_task() {
 
     Peripherals::Controller controller(Config::Default::controller_config);
     // Peripherals::StatusLed led(Config::Default::led_config);  // Disabled to prevent PWM noise on ADC
-    Peripherals::Display display(Config::Default::display_config);
+    Peripherals::Display display(Config::Default::display_config, g_settings_store);
 
     Utils::PS4AuthProvider ps4authprovider;
     std::array<uint8_t, Utils::PS4AuthProvider::SIGNATURE_LENGTH> auth_challenge{};
@@ -138,7 +140,8 @@ int main() {
     stdio_init_all();
 
     // Initialize SettingsStore first to get saved ADC channel configuration
-    auto settings_store = std::make_shared<Utils::SettingsStore>();
+    g_settings_store = std::make_shared<Utils::SettingsStore>();
+    auto settings_store = g_settings_store;
 
     // Create drum config with ADC channels from settings
     auto drum_config = Config::Default::drum_config;
