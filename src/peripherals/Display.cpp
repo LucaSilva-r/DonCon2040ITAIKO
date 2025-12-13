@@ -45,7 +45,8 @@ std::string modeToString(usb_mode_t mode) {
 
 } // namespace
 
-Display::Display(const Config &config) : m_config(config) {
+Display::Display(const Config &config, std::shared_ptr<Utils::SettingsStore> settings_store)
+    : m_config(config), m_settings_store(settings_store) {
     m_display.external_vcc = false;
     ssd1306_init(&m_display, 128, 64, m_config.i2c_address, m_config.i2c_block);
     ssd1306_clear(&m_display);
@@ -138,7 +139,16 @@ void Display::drawIdleScreen() {
 void Display::drawSplashScreen() {
     // Non-blocking splash screen - just draw it once and record the time
     ssd1306_clear(&m_display);
-    ssd1306_bmp_show_image(&m_display, splash_screen.data(), splash_screen.size());
+
+    // Check if custom bitmap is available
+    if (m_settings_store && m_settings_store->hasCustomBitmap()) {
+        m_settings_store->getCustomBitmap(m_custom_bitmap_buffer.data(), m_custom_bitmap_buffer.size());
+        ssd1306_bmp_show_image(&m_display, m_custom_bitmap_buffer.data(), m_custom_bitmap_buffer.size());
+    } else {
+        // Use default splash screen
+        ssd1306_bmp_show_image(&m_display, splash_screen.data(), splash_screen.size());
+    }
+
     ssd1306_show(&m_display);
     m_splash_start_time = to_ms_since_boot(get_absolute_time());
     m_state = State::Splash;

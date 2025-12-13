@@ -4,10 +4,12 @@
 #include "usb/device_driver.h"
 #include "utils/InputState.h"
 #include "utils/Menu.h"
+#include "utils/SettingsStore.h"
 
 #include "hardware/i2c.h"
 #include <ssd1306/ssd1306.h>
 
+#include <array>
 #include <cstdint>
 #include <memory>
 
@@ -45,12 +47,16 @@ class Display {
     bool m_screen_off{false};
     Utils::InputState m_last_input_state{};
 
+    // Custom bitmap support
+    std::shared_ptr<Utils::SettingsStore> m_settings_store;
+    std::array<uint8_t, 1280> m_custom_bitmap_buffer;
+
     bool hasActivity(const Utils::InputState &state);
     void drawIdleScreen();
     void drawMenuScreen();
-    
+
   public:
-    Display(const Config &config);
+    Display(const Config &config, std::shared_ptr<Utils::SettingsStore> settings_store);
 
     void setInputState(const Utils::InputState &state);
     void setUsbMode(usb_mode_t mode);
