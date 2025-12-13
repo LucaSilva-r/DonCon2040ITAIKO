@@ -28,6 +28,12 @@ The system uses a simple command-based protocol:
 - **2000** - Start streaming sensor data (CSV format, ~100Hz)
 - **2001** - Stop streaming sensor data
 
+**Custom Boot Screen Commands:**
+- **3000** - Start custom boot screen bitmap upload (then send binary BMP data)
+- **3003** - Clear custom bitmap (reset to default splash screen)
+- ~~**3001**~~ - Deprecated: Upload bitmap chunk (auto-handled after 3000)
+- ~~**3002**~~ - Deprecated: Finalize bitmap (auto-handled when complete)
+
 ### Setting Keys
 
 **Trigger Thresholds:**
@@ -185,6 +191,132 @@ python test_serial_config.py COM3 stream
 python test_serial_config.py COM3 stopstream
 ```
 
+## Custom Boot Screen Upload
+
+The firmware supports uploading a custom 128x64 monochrome bitmap to replace the default boot screen (splash screen). The bitmap is stored in flash memory and persists across reboots.
+
+### Bitmap Requirements
+
+- **Format**: Windows BMP (bitmap) file
+- **Resolution**: 128 x 64 pixels
+- **Color depth**: 1-bit monochrome (black and white only)
+- **Max size**: 1,280 bytes (including BMP headers)
+- **Compression**: None (uncompressed)
+
+Use the included `scripts/generateBitmap.py` tool to convert any image to the correct format:
+
+```bash
+python scripts/generateBitmap.py input_image.png output.bmp
+```
+
+### Upload Protocol
+
+The bitmap upload uses an automatic protocol - the device reads the BMP header to determine file size and auto-finalizes:
+
+1. **Send command 3000** - Initialize bitmap upload mode
+   - Device responds with: `BITMAP_UPLOAD_READY`
+   - Device enters binary upload mode
+
+2. **Send binary BMP data** - Just send the BMP file
+   - Device automatically reads binary data
+   - Device parses BMP header to determine expected file size
+   - Device automatically saves to flash when all bytes received
+   - Device responds with: `BITMAP_SAVED:<bytes>`
+   - The custom bitmap will be displayed on next boot
+
+3. **Send command 3003** - Clear custom bitmap (optional)
+   - Removes custom bitmap and reverts to default
+   - Device responds with: `BITMAP_CLEARED`
+
+**Note:** Commands 3001 and 3002 from older versions are deprecated but still supported for backward compatibility.
+
+### Example Python Upload Script
+
+```python
+import serial
+import time
+
+def upload_custom_bitmap(port, bitmap_file):
+    ser = serial.Serial(port, 115200, timeout=2)
+    time.sleep(0.5)  # Wait for connection
+
+    # Read bitmap file
+    with open(bitmap_file, 'rb') as f:
+        bitmap_data = f.read()
+
+    print(f"Uploading {len(bitmap_data)} bytes...")
+
+    # Step 1: Start upload
+    ser.write(b"3000\n")
+    response = ser.readline().decode().strip()
+    print(f"Response: {response}")
+
+    if "BITMAP_UPLOAD_READY" not in response:
+        print("Error: Device not ready")
+        return
+
+    # Step 2: Send bitmap data (device auto-finalizes)
+    ser.write(bitmap_data)
+    ser.flush()
+
+    # Wait for device to save (flash write takes ~1-2 seconds)
+    time.sleep(2.0)
+
+    response = ser.readline().decode().strip()
+    print(f"Response: {response}")
+
+    if "BITMAP_SAVED" in response:
+        print("Custom boot screen uploaded successfully!")
+    else:
+        print("Upload failed")
+
+    ser.close()
+
+# Usage
+upload_custom_bitmap("COM3", "my_custom_bootscreen.bmp")
+```
+
+Or simply use the included test script:
+```bash
+python test_serial_config.py COM3 uploadbitmap my_custom_bootscreen.bmp
+```
+
+### Clearing Custom Bitmap
+
+To revert to the default boot screen:
+
+```python
+import serial
+ser = serial.Serial("COM3", 115200)
+ser.write(b"3003\n")
+print(ser.readline().decode())  # Should print: BITMAP_CLEARED
+ser.close()
+```
+
+### Storage Details
+
+- **Flash location**: Pages 4-9 of the last 4KB flash sector (separate from settings)
+- **Persistence**: Survives reboots and most firmware updates
+- **Wear leveling**: Not applied (single write location)
+- **Fallback**: If bitmap is corrupted or missing, default splash screen is shown
+
+### Troubleshooting
+
+**Upload fails:**
+- Ensure bitmap is exactly 128x64 pixels and 1-bit monochrome
+- Verify file size is under 1,280 bytes
+- Use `generateBitmap.py` to ensure correct format
+
+**Custom bitmap not showing:**
+- Reboot the device after upload (or wait for natural reboot)
+- Check that command 3002 returned `BITMAP_SAVED`
+- Try clearing (3003) and re-uploading
+
+**Bitmap appears corrupted:**
+- Verify BMP file is not compressed
+- Ensure binary data transfer is not corrupting bytes
+- Use a different USB cable or port
+
 ## Integration with Existing System
 
 The serial configuration system:
@@ -200,13 +332,14 @@ The serial configuration system:
 
 | Feature | Description |
 |---------|-------------|
-| Protocol | Commands 1000-1004 (config), 2000-2001 (streaming) |
+| Protocol | Commands 1000-1004 (config), 2000-2001 (streaming), 3000-3003 (custom boot screen) |
 | Parameters | 46 configurable keys (0-45) |
 | Value Storage | uint32_t for thresholds, uint16_t for other settings |
 | Integration | Integrated with SettingsStore for persistence |
-| Persistence | Automatic flash wear leveling |
+| Persistence | Automatic flash wear leveling (settings), dedicated flash pages (bitmap) |
 | Streaming Mode | Commands 2000/2001 for live sensor data (~100Hz) |
-| Features | Thresholds, debounce, double trigger, cutoffs, keyboard mappings, ADC channels |
+| Custom Boot Screen | Commands 3000-3003 for 128x64 monochrome BMP upload (max 1280 bytes) |
+| Features | Thresholds, debounce, double trigger, cutoffs, keyboard mappings, ADC channels, custom splash |
 
 ## USB Mode Compatibility
 
