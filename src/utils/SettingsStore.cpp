@@ -5,6 +5,7 @@
 #include "hardware/watchdog.h"
 #include "pico/bootrom.h"
 #include "pico/multicore.h"
+#include "pico/stdio_usb.h"
 
 namespace Doncon::Utils {
 

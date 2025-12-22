@@ -1,13 +1,19 @@
 #ifndef PERIPHERALS_DISPLAY_H_
 #define PERIPHERALS_DISPLAY_H_
 
+// Uncomment to disable display support
+//#define NO_SCREEN
+
 #include "usb/device_driver.h"
 #include "utils/InputState.h"
 #include "utils/Menu.h"
 #include "utils/SettingsStore.h"
 
 #include "hardware/i2c.h"
+
+#ifndef NO_SCREEN
 #include <ssd1306/ssd1306.h>
+#endif
 
 #include <array>
 #include <cstdint>
@@ -38,7 +44,9 @@ class Display {
 
     Utils::Menu::State m_menu_state{};
 
+#ifndef NO_SCREEN
     ssd1306_t m_display{};
+#endif
     uint32_t m_next_frame_time{0};
     uint32_t m_splash_start_time{0};
 

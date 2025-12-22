@@ -3,7 +3,9 @@
 #include "hardware/gpio.h"
 #include "pico/time.h"
 
+#ifndef NO_SCREEN
 #include "bitmaps/MenuScreens.h"
+#endif
 
 #include <list>
 #include <numeric>
@@ -13,6 +15,7 @@ namespace Doncon::Peripherals {
 
 namespace {
 
+#ifndef NO_SCREEN
 std::string modeToString(usb_mode_t mode) {
     switch (mode) {
     case USB_MODE_SWITCH_TATACON:
@@ -42,18 +45,22 @@ std::string modeToString(usb_mode_t mode) {
     }
     return "?";
 }
+#endif
 
 } // namespace
 
 Display::Display(const Config &config, std::shared_ptr<Utils::SettingsStore> settings_store)
     : m_config(config), m_settings_store(settings_store) {
+#ifndef NO_SCREEN
     m_display.external_vcc = false;
     ssd1306_init(&m_display, 128, 64, m_config.i2c_address, m_config.i2c_block);
     ssd1306_clear(&m_display);
     m_last_activity_time = to_ms_since_boot(get_absolute_time());
+#endif
 }
 
 void Display::setInputState(const Utils::InputState &state) {
+#ifndef NO_SCREEN
     // Check for any new activity to reset the screen timeout
     if (hasActivity(state)) {
         m_last_activity_time = to_ms_since_boot(get_absolute_time());
@@ -67,6 +74,9 @@ void Display::setInputState(const Utils::InputState &state) {
 
     m_last_input_state = m_input_state;
     m_input_state = state;
+#else
+    (void)state;
+#endif
 }
 
 bool Display::hasActivity(const Utils::InputState &state) {
@@ -108,6 +118,7 @@ void Display::showIdle() { m_state = State::Idle; }
 void Display::showMenu() { m_state = State::Menu; }
 
 void Display::drawIdleScreen() {
+#ifndef NO_SCREEN
     // Header
     const std::string mode_string = modeToString(m_usb_mode) + " mode";
     ssd1306_draw_string(&m_display, 0, 0, 1, mode_string.c_str());
@@ -133,10 +144,12 @@ void Display::drawIdleScreen() {
     // Menu hint
     ssd1306_draw_line(&m_display, 0, 54, 128, 54);
     ssd1306_draw_string(&m_display, 0, 56, 1, "Hold STA+SEL for Menu");
+#endif
 }
 
 
 void Display::drawSplashScreen() {
+#ifndef NO_SCREEN
     // Non-blocking splash screen - just draw it once and record the time
     ssd1306_clear(&m_display);
 
@@ -152,9 +165,11 @@ void Display::drawSplashScreen() {
     ssd1306_show(&m_display);
     m_splash_start_time = to_ms_since_boot(get_absolute_time());
     m_state = State::Splash;
+#endif
 }
 
 void Display::drawMenuScreen() {
+#ifndef NO_SCREEN
     auto descriptor_it = Utils::Menu::descriptors.find(m_menu_state.page);
     if (descriptor_it == Utils::Menu::descriptors.end()) {
         return;
@@ -221,9 +236,11 @@ void Display::drawMenuScreen() {
     case Utils::Menu::Descriptor::Type::Toggle:
         break;
     }
+#endif
 }
 
 void Display::update() {
+#ifndef NO_SCREEN
     static const uint32_t interval_ms = 17;            // Limit to ~60fps
     static const uint32_t splash_duration_ms = 2000;   // Show splash for 2 seconds
     static const uint32_t screen_off_timeout_ms = 60000; // Turn off after 60 seconds of inactivity
@@ -272,6 +289,7 @@ void Display::update() {
     }
 
     ssd1306_show(&m_display);
+#endif
 };
 
 } // namespace Doncon::Peripherals

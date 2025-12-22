@@ -127,6 +127,7 @@ class SerialConfig {
     bool m_write_mode;
     int m_write_count;
     bool m_streaming_mode;
+    bool m_input_streaming_mode;
     uint64_t m_last_stream_time;
 
     // ADC streaming average data
@@ -150,6 +151,7 @@ class SerialConfig {
         RebootToBootsel = 1004,
         StartStreaming = 2000,
         StopStreaming = 2001,
+        StartInputStreaming = 2002,
         StartBitmapUpload = 3000,
         UploadBitmapChunk = 3001,
         FinalizeBitmap = 3002,
@@ -159,7 +161,8 @@ class SerialConfig {
     void handleCommand(int command_value);
     void handleWriteData(const char *data);
     void sendAllSettings();
-    void sendSensorData(const InputState &input_state, uint16_t ka_l, uint16_t don_l, uint16_t don_r, uint16_t ka_r);
+    void sendSensorData(uint16_t ka_l, uint16_t don_l, uint16_t don_r, uint16_t ka_r);
+    void sendInputData(const InputState &input_state);
     uint16_t getSettingByKey(int key);
     void setSettingByKey(int key, uint16_t value);
 };

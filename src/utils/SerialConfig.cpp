@@ -15,7 +15,7 @@ uint32_t s_serial_buf_idx = 0;
 
 SerialConfig::SerialConfig(SettingsStore &settings_store, SettingsAppliedCallback on_settings_applied)
     : m_settings_store(settings_store), m_on_settings_applied(on_settings_applied), m_write_mode(false),
-      m_write_count(0), m_streaming_mode(false), m_last_stream_time(0), m_don_left_sum(0), m_ka_left_sum(0),
+      m_write_count(0), m_streaming_mode(false), m_input_streaming_mode(false), m_last_stream_time(0), m_don_left_sum(0), m_ka_left_sum(0),
       m_don_right_sum(0), m_ka_right_sum(0), m_sample_count(0), m_bitmap_upload_mode(false),
       m_bitmap_bytes_received(0), m_bitmap_expected_size(0) {}
 
@@ -133,6 +133,7 @@ void SerialConfig::handleCommand(int command_value) {
 
     case Command::StartStreaming:
         m_streaming_mode = true;
+        m_input_streaming_mode = false;
         m_don_left_sum = 0;
         m_ka_left_sum = 0;
         m_don_right_sum = 0;
@@ -140,8 +141,14 @@ void SerialConfig::handleCommand(int command_value) {
         m_sample_count = 0;
         break;
 
+    case Command::StartInputStreaming:
+        m_streaming_mode = false;
+        m_input_streaming_mode = true;
+        break;
+
     case Command::StopStreaming:
         m_streaming_mode = false;
+        m_input_streaming_mode = false;
         break;
 
     case Command::StartBitmapUpload:
@@ -252,7 +259,7 @@ void SerialConfig::sendAllSettings() {
         uint16_t value = getSettingByKey(i);
         printf("%d:%d\n", i, value);
         stdio_flush();
-        sleep_us(5000); // Small delay between values
+        //sleep_us(5000); // Small delay between values
     }
     printf("Version:%s\n", FIRMWARE_VERSION);
     stdio_flush();
@@ -627,22 +634,26 @@ void SerialConfig::setSettingByKey(int key, uint16_t value) {
     }
 }
 
-void SerialConfig::sendSensorData(const InputState &input_state, uint16_t ka_l, uint16_t don_l, uint16_t don_r,
+void SerialConfig::sendSensorData(uint16_t ka_l, uint16_t don_l, uint16_t don_r,
                                       uint16_t ka_r) {
-    const auto &drum = input_state.drum;
+    // Pack 4x 16-bit values into one 64-bit integer
+    // Order: Ka Left (MSB), Don Left, Don Right, Ka Right (LSB)
+    uint64_t packet = ((uint64_t)ka_l << 48) |
+                      ((uint64_t)don_l << 32) |
+                      ((uint64_t)don_r << 16) |
+                      ((uint64_t)ka_r);
 
-    // CSV format:
-    // triggered_ka_left,ka_raw,ka_duration,triggered_don_left,don_left_raw,don_left_duration,triggered_don_right,don_right_raw,don_right_duration,triggered_ka_right,ka_right_raw,ka_right_duration
-    printf("%c,%d,%lu,%c,%d,%lu,%c,%d,%lu,%c,%d,%lu\n",                           //
-           (drum.ka_left.triggered ? 'T' : 'F'), ka_l, drum.ka_left.duration_ms,   //
-           (drum.don_left.triggered ? 'T' : 'F'), don_l, drum.don_left.duration_ms, //
-           (drum.don_right.triggered ? 'T' : 'F'), don_r, drum.don_right.duration_ms,   //
-           (drum.ka_right.triggered ? 'T' : 'F'), ka_r, drum.ka_right.duration_ms);
+    printf("%016llX\n", packet);
     stdio_flush();
 }
 
 void SerialConfig::sendSensorDataIfStreaming(const InputState &input_state) {
-    if (!m_streaming_mode || !tud_cdc_connected()) {
+    if ((!m_streaming_mode && !m_input_streaming_mode) || !tud_cdc_connected()) {
+        return;
+    }
+
+    if (m_input_streaming_mode) {
+        sendInputData(input_state);
         return;
     }
 
@@ -653,13 +664,13 @@ void SerialConfig::sendSensorDataIfStreaming(const InputState &input_state) {
     m_ka_right_sum += input_state.drum.ka_right.raw;
     m_sample_count++;
 
-    // Rate limit to ~1000Hz (1ms between sends)
-    const uint64_t current_time = time_us_64();
-    if (current_time - m_last_stream_time < 1000) {
-        return;
-    }
+    // // Rate limit to ~1000Hz (1ms between sends)
+    // const uint64_t current_time = time_us_64();
+    // if (current_time - m_last_stream_time < 1000) {
+    //     return;
+    // }
 
-    m_last_stream_time = current_time;
+   // m_last_stream_time = current_time;
 
     if (m_sample_count > 0) {
         const uint16_t don_left_avg = m_don_left_sum / m_sample_count;
@@ -667,7 +678,7 @@ void SerialConfig::sendSensorDataIfStreaming(const InputState &input_state) {
         const uint16_t don_right_avg = m_don_right_sum / m_sample_count;
         const uint16_t ka_right_avg = m_ka_right_sum / m_sample_count;
 
-        sendSensorData(input_state, ka_left_avg, don_left_avg, don_right_avg, ka_right_avg);
+        sendSensorData(ka_left_avg, don_left_avg, don_right_avg, ka_right_avg);
 
         // Reset accumulators
         m_don_left_sum = 0;
@@ -676,6 +687,19 @@ void SerialConfig::sendSensorDataIfStreaming(const InputState &input_state) {
         m_ka_right_sum = 0;
         m_sample_count = 0;
     }
+}
+
+void SerialConfig::sendInputData(const InputState &input_state) {
+    const auto &drum = input_state.drum;
+    uint8_t mask = 0;
+
+    if (drum.ka_left.triggered) mask |= (1 << 0);
+    if (drum.don_left.triggered) mask |= (1 << 1);
+    if (drum.don_right.triggered) mask |= (1 << 2);
+    if (drum.ka_right.triggered) mask |= (1 << 3);
+
+    printf("%X\n", mask);
+    stdio_flush();
 }
 
 } // namespace Doncon::Utils
