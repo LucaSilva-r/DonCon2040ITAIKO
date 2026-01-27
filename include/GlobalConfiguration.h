@@ -58,15 +58,15 @@ const Utils::ControllerKeys controller_keys = {
     .select = HID_KEY_TAB,
     .home = HID_KEY_NONE,
     .share = HID_KEY_NONE,
-    
+
     .l3 = HID_KEY_NONE,
     .r3 = HID_KEY_NONE,
 };
 
 const I2c i2c_config = {
-    .sda_pin = 6,
-    .scl_pin = 7,
-    .block = i2c1,
+    .sda_pin = 8,
+    .scl_pin = 9,
+    .block = i2c0,
     .speed_hz = 1000000,
 };
 
@@ -127,34 +127,33 @@ const Peripherals::Drum::Config drum_config = {
             .spi_miso_pin = 12,
             .spi_sclk_pin = 10,
             .spi_scsn_pin = 13,
-            .spi_level_shifter_enable_pin = 9,
         },
 };
-  
+
 const Peripherals::Controller::Config controller_config = {
     .pins =
         {
             .dpad =
                 {
-                    .up = 22,
-                    .down = 23,
-                    .left = 24,
-                    .right = 20,
+                    .up = 27,
+                    .down = 7,
+                    .left = 26,
+                    .right = 14,
                 },
             .buttons =
                 {
                     .north = 1,
-                    .east = 8,
+                    .east = 6,
                     .south = 2,
-                    .west = 4,
+                    .west = 5,
 
-                    .l = 15,
+                    .l = 29,
                     .r = 0,
 
                     .start = 3,
-                    .select = 14,
-                    .home = 5,
-                    .share = 19,
+                    .select = 28,
+                    .home = 4,
+                    .share = 15,
                 },
         },
 

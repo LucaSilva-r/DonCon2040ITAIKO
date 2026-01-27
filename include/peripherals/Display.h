@@ -2,7 +2,7 @@
 #define PERIPHERALS_DISPLAY_H_
 
 // Uncomment to disable display support
-#define NO_SCREEN
+//#define NO_SCREEN
 
 #include "usb/device_driver.h"
 #include "utils/InputState.h"

@@ -66,7 +66,7 @@ void core1_task() {
     i2c_init(Config::Default::i2c_config.block, Config::Default::i2c_config.speed_hz);
 
     Peripherals::Controller controller(Config::Default::controller_config);
-    Peripherals::StatusLed led(Config::Default::led_config);
+    //Peripherals::StatusLed led(Config::Default::led_config);
     Peripherals::Display display(Config::Default::display_config, g_settings_store);
 
     Utils::PS4AuthProvider ps4authprovider;
@@ -99,10 +99,10 @@ void core1_task() {
                 }
                 break;
             case ControlCommand::SetLedBrightness:
-                led.setBrightness(control_msg.data.led_brightness);
+                //led.setBrightness(control_msg.data.led_brightness);
                 break;
             case ControlCommand::SetLedEnablePlayerColor:
-                led.setEnablePlayerColor(control_msg.data.led_enable_player_color);
+                //led.setEnablePlayerColor(control_msg.data.led_enable_player_color);
                 break;
             case ControlCommand::EnterMenu:
                 display.showMenu();
@@ -121,10 +121,10 @@ void core1_task() {
             queue_try_add(&auth_signed_challenge_queue, &signed_challenge);
         }
 
-        led.setInputState(input_state);
+        //led.setInputState(input_state);
         display.setInputState(input_state);
 
-        led.update();
+        //led.update();
         display.update();
     }
 }
