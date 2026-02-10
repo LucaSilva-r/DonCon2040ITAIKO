@@ -42,7 +42,7 @@ class Drum {
             uint8_t spi_miso_pin;
             uint8_t spi_sclk_pin;
             uint8_t spi_scsn_pin;
-            uint8_t spi_level_shifter_enable_pin;
+            //uint8_t spi_level_shifter_enable_pin;
         };
 
         enum class DoubleTriggerMode : uint8_t {

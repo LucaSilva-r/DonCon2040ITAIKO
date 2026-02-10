@@ -50,9 +50,9 @@ std::array<uint16_t, 4> Drum::InternalAdc::read() {
 
 Drum::ExternalAdc::ExternalAdc(const Config::ExternalAdc &config) {
     // Enable level shifter
-    gpio_init(config.spi_level_shifter_enable_pin);
-    gpio_set_dir(config.spi_level_shifter_enable_pin, (bool)GPIO_OUT);
-    gpio_put(config.spi_level_shifter_enable_pin, true);
+    // gpio_init(config.spi_level_shifter_enable_pin);
+    // gpio_set_dir(config.spi_level_shifter_enable_pin, (bool)GPIO_OUT);
+    // gpio_put(config.spi_level_shifter_enable_pin, true);
 
     // Set up SPI
     gpio_set_function(config.spi_miso_pin, GPIO_FUNC_SPI);

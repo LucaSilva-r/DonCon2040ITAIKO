@@ -12,6 +12,7 @@ Commands:
   reload       - Reload settings from flash (sends 1003)
   set <k> <v>  - Set specific key to value in write mode
   stream       - Start streaming sensor data (sends 2000)
+  stream_input - Start streaming input status (sends 2002)
   stopstream   - Stop streaming sensor data (sends 2001)
 
 Examples:
@@ -120,7 +121,40 @@ class SerialConfig:
             while True:
                 if self.ser.in_waiting:
                     line = self.ser.readline().decode().strip()
-                    print(line)
+                    try:
+                        # Parse 64-bit hex string
+                        val = int(line, 16)
+                        # Unpack: KaL(48-63), DonL(32-47), DonR(16-31), KaR(0-15)
+                        ka_l = (val >> 48) & 0xFFFF
+                        don_l = (val >> 32) & 0xFFFF
+                        don_r = (val >> 16) & 0xFFFF
+                        ka_r = val & 0xFFFF
+                        print(f"KL:{ka_l:<5} DL:{don_l:<5} DR:{don_r:<5} KR:{ka_r:<5} ({line})")
+                    except ValueError:
+                        print(line)
+        except KeyboardInterrupt:
+            print("\nStopping stream...")
+            self.stop_streaming()
+
+    def start_input_streaming(self):
+        """Start streaming input status"""
+        print("Starting input status streaming...")
+        self.send_command(2002)
+        time.sleep(0.1)
+        print("Streaming started. Press Ctrl+C to stop.")
+        try:
+            while True:
+                if self.ser.in_waiting:
+                    line = self.ser.readline().decode().strip()
+                    try:
+                        mask = int(line, 16)
+                        kl = "X" if (mask & 1) else "."
+                        dl = "O" if (mask & 2) else "."
+                        dr = "O" if (mask & 4) else "."
+                        kr = "X" if (mask & 8) else "."
+                        print(f"{kl} {dl} {dr} {kr} ({line})")
+                    except ValueError:
+                        print(line)
         except KeyboardInterrupt:
             print("\nStopping stream...")
             self.stop_streaming()
@@ -186,6 +220,8 @@ def main():
             config.set_value(key, value)
         elif command == "stream":
             config.start_streaming()
+        elif command == "stream_input":
+            config.start_input_streaming()
         elif command == "stopstream":
             config.stop_streaming()
         else:
