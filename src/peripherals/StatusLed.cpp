@@ -8,6 +8,14 @@
 
 namespace Doncon::Peripherals {
 
+namespace {
+// Tosu judgment colors
+constexpr StatusLed::Config::Color TOSU_COLOR_GREAT = {255, 215, 0};   // Gold
+constexpr StatusLed::Config::Color TOSU_COLOR_OK = {100, 200, 100};    // Green
+constexpr StatusLed::Config::Color TOSU_COLOR_MISS = {255, 30, 30};    // Red
+constexpr StatusLed::Config::Color TOSU_COLOR_NEUTRAL = {80, 80, 80};  // Dim gray (before judgment arrives)
+} // namespace
+
 StatusLed::StatusLed(const Config &config) : m_config(config) {
     // Initialize PIO state machine for WS2812 (this claims the pin for PIO)
     ws2812_init(pio0, config.led_pin, m_config.is_rgbw);
@@ -27,6 +35,39 @@ void StatusLed::setEnablePlayerColor(const bool do_enable) { m_config.enable_pla
 
 void StatusLed::setInputState(const Utils::InputState &input_state) { m_input_state = input_state; }
 void StatusLed::setPlayerColor(const Config::Color &color) { m_player_color = color; }
+
+void StatusLed::setTosuMode(bool active) {
+    m_tosu_mode = active;
+    if (!active) {
+        m_tosu_judgment_pending = false;
+    }
+}
+
+void StatusLed::setTosuJudgment(uint8_t judgment) {
+    switch (judgment) {
+    case 2:
+        m_tosu_judgment_color = TOSU_COLOR_GREAT;
+        break;
+    case 1:
+        m_tosu_judgment_color = TOSU_COLOR_OK;
+        break;
+    default:
+        m_tosu_judgment_color = TOSU_COLOR_MISS;
+        break;
+    }
+
+    // Recolor the most recent neutral-gray ripple (handles race condition where
+    // the hit spawned a neutral ripple before the judgment arrived)
+    for (auto it = m_ripples.rbegin(); it != m_ripples.rend(); ++it) {
+        if (it->color.r == TOSU_COLOR_NEUTRAL.r && it->color.g == TOSU_COLOR_NEUTRAL.g &&
+            it->color.b == TOSU_COLOR_NEUTRAL.b) {
+            it->color = m_tosu_judgment_color;
+            break;
+        }
+    }
+
+    m_tosu_judgment_pending = true;
+}
 
 bool StatusLed::isActive() const { return m_active; }
 
@@ -58,16 +99,28 @@ void StatusLed::update() {
     float left_origin = (float)m_config.led_count * 0.25f;
     float right_origin = (float)m_config.led_count * 0.75f;
 
+    // Determine ripple color based on mode
+    auto get_color = [&](const Config::Color &normal_color) -> Config::Color {
+        if (!m_tosu_mode) {
+            return normal_color;
+        }
+        if (m_tosu_judgment_pending) {
+            m_tosu_judgment_pending = false;
+            return m_tosu_judgment_color;
+        }
+        return TOSU_COLOR_NEUTRAL;
+    };
+
     if (m_input_state.drum.don_left.triggered && !m_previous_input_state.drum.don_left.triggered) {
-        spawn_ripple(m_config.don_left_color, left_origin);
+        spawn_ripple(get_color(m_config.don_left_color), left_origin);
     } else if (m_input_state.drum.ka_left.triggered && !m_previous_input_state.drum.ka_left.triggered) {
-        spawn_ripple(m_config.ka_left_color, left_origin);
+        spawn_ripple(get_color(m_config.ka_left_color), left_origin);
     }
 
     if (m_input_state.drum.don_right.triggered && !m_previous_input_state.drum.don_right.triggered) {
-        spawn_ripple(m_config.don_right_color, right_origin);
+        spawn_ripple(get_color(m_config.don_right_color), right_origin);
     } else if (m_input_state.drum.ka_right.triggered && !m_previous_input_state.drum.ka_right.triggered) {
-        spawn_ripple(m_config.ka_right_color, right_origin);
+        spawn_ripple(get_color(m_config.ka_right_color), right_origin);
     }
 
     m_previous_input_state = m_input_state;

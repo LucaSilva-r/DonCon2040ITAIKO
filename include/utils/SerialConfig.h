@@ -101,7 +101,15 @@ class SerialConfig {
   public:
     using SettingsAppliedCallback = std::function<void()>;
 
+    // Pending tosu command (polled by main loop after processSerial)
+    struct TosuCommand {
+        enum class Type : uint8_t { None, ModeEnter, ModeExit, JudgmentGreat, JudgmentOk, JudgmentMiss };
+        Type type = Type::None;
+    };
+
     explicit SerialConfig(SettingsStore &settings_store, SettingsAppliedCallback on_settings_applied = nullptr);
+
+    TosuCommand consumeTosuCommand();
 
     /**
      * @brief Process incoming serial data
@@ -124,6 +132,7 @@ class SerialConfig {
   private:
     SettingsStore &m_settings_store;
     SettingsAppliedCallback m_on_settings_applied;
+    TosuCommand m_pending_tosu_command;
     bool m_write_mode;
     int m_write_count;
     bool m_streaming_mode;
@@ -156,6 +165,13 @@ class SerialConfig {
         UploadBitmapChunk = 3001,
         FinalizeBitmap = 3002,
         ClearBitmap = 3003,
+
+        // Game integration commands (4000-series)
+        TosuModeEnter = 4000,
+        TosuModeExit = 4001,
+        TosuJudgmentGreat = 4010,
+        TosuJudgmentOk = 4011,
+        TosuJudgmentMiss = 4012,
     };
 
     void handleCommand(int command_value);

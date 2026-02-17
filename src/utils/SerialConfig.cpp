@@ -14,8 +14,9 @@ uint32_t s_serial_buf_idx = 0;
 } // namespace
 
 SerialConfig::SerialConfig(SettingsStore &settings_store, SettingsAppliedCallback on_settings_applied)
-    : m_settings_store(settings_store), m_on_settings_applied(on_settings_applied), m_write_mode(false),
-      m_write_count(0), m_streaming_mode(false), m_input_streaming_mode(false), m_last_stream_time(0), m_don_left_sum(0), m_ka_left_sum(0),
+    : m_settings_store(settings_store), m_on_settings_applied(on_settings_applied), m_pending_tosu_command{},
+      m_write_mode(false), m_write_count(0), m_streaming_mode(false),
+      m_input_streaming_mode(false), m_last_stream_time(0), m_don_left_sum(0), m_ka_left_sum(0),
       m_don_right_sum(0), m_ka_right_sum(0), m_sample_count(0), m_bitmap_upload_mode(false),
       m_bitmap_bytes_received(0), m_bitmap_expected_size(0) {}
 
@@ -213,6 +214,30 @@ void SerialConfig::handleCommand(int command_value) {
         for (int i = 0; i < 10; i++) {
             tud_task();
         }
+        break;
+
+    case Command::TosuModeEnter:
+        m_pending_tosu_command.type = TosuCommand::Type::ModeEnter;
+        printf("TOSU_MODE:ON\n");
+        stdio_flush();
+        break;
+
+    case Command::TosuModeExit:
+        m_pending_tosu_command.type = TosuCommand::Type::ModeExit;
+        printf("TOSU_MODE:OFF\n");
+        stdio_flush();
+        break;
+
+    case Command::TosuJudgmentGreat:
+        m_pending_tosu_command.type = TosuCommand::Type::JudgmentGreat;
+        break;
+
+    case Command::TosuJudgmentOk:
+        m_pending_tosu_command.type = TosuCommand::Type::JudgmentOk;
+        break;
+
+    case Command::TosuJudgmentMiss:
+        m_pending_tosu_command.type = TosuCommand::Type::JudgmentMiss;
         break;
     }
 }
@@ -700,6 +725,12 @@ void SerialConfig::sendInputData(const InputState &input_state) {
 
     printf("%X\n", mask);
     stdio_flush();
+}
+
+SerialConfig::TosuCommand SerialConfig::consumeTosuCommand() {
+    TosuCommand cmd = m_pending_tosu_command;
+    m_pending_tosu_command.type = TosuCommand::Type::None;
+    return cmd;
 }
 
 } // namespace Doncon::Utils

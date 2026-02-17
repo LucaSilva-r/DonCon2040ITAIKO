@@ -35,6 +35,13 @@ The system uses a simple command-based protocol:
 - ~~**3001**~~ - Deprecated: Upload bitmap chunk (auto-handled after 3000)
 - ~~**3002**~~ - Deprecated: Finalize bitmap (auto-handled when complete)
 
+**Game Integration Commands (tosu):**
+- **4000** - Enter tosu mode (judgment-colored LED ripples)
+- **4001** - Exit tosu mode (return to normal LED behavior)
+- **4010** - Send judgment: Great (300) - gold ripple
+- **4011** - Send judgment: Ok (100) - green ripple
+- **4012** - Send judgment: Miss (0) - red ripple
+
 ### Setting Keys
 
 **Trigger Thresholds:**
@@ -340,6 +347,55 @@ ser.close()
 - Ensure binary data transfer is not corrupting bytes
 - Use a different USB cable or port
 
+## Game Integration (tosu)
+
+The firmware supports integration with [tosu](https://github.com/tosuapp/tosu), an osu! memory reader, to color the drum's LED strip based on hit judgment quality during osu!taiko gameplay.
+
+### How It Works
+
+1. A bridge application (e.g. the [itaiko.com](https://itaiko.com) web configurator) connects to both the drum via serial and tosu via WebSocket (`ws://localhost:24050/websocket/v2`)
+2. When a Taiko map starts, the bridge sends **4000** to enter tosu mode
+3. As the player hits the drum, tosu reports hit judgments (Great/Ok/Miss) via its WebSocket API
+4. The bridge detects judgment changes and sends **4010**/**4011**/**4012** to the drum
+5. The drum colors its LED ripples based on the judgment instead of the pad type (don/ka)
+6. When the map ends, the bridge sends **4001** to return to normal LED behavior
+
+### Timing and Race Condition Handling
+
+The drum detects hits locally (~1ms) but judgments arrive from tosu ~100-150ms later. The firmware handles this gracefully:
+
+- On hit: a **neutral gray** ripple spawns immediately (instant visual feedback)
+- On judgment: the gray ripple is **recolored** to gold/green/red mid-animation
+- Since ripples last ~400ms, the recolor happens well before the animation ends
+
+### Judgment Colors
+
+| Command | Judgment | Color | RGB |
+|---------|----------|-------|-----|
+| 4010 | Great (300) | Gold | (255, 215, 0) |
+| 4011 | Ok (100) | Green | (100, 200, 100) |
+| 4012 | Miss (0) | Red | (255, 30, 30) |
+| - | Pending | Dim Gray | (80, 80, 80) |
+
+### Responses
+
+| Command | Response |
+|---------|----------|
+| 4000 | `TOSU_MODE:ON` |
+| 4001 | `TOSU_MODE:OFF` |
+| 4010-4012 | (no response, low-latency path) |
+
+### Example Usage
+
+```
+4000          # Enter tosu mode (game started)
+4010          # Great hit - gold ripple
+4010          # Another great hit
+4011          # Ok hit - green ripple
+4012          # Miss - red ripple
+4001          # Exit tosu mode (game ended)
+```
+
 ## Integration with Existing System
 
 The serial configuration system:
@@ -355,14 +411,14 @@ The serial configuration system:
 
 | Feature | Description |
 |---------|-------------|
-| Protocol | Commands 1000-1004 (config), 2000-2001 (streaming), 3000-3003 (custom boot screen) |
+| Protocol | Commands 1000-1004 (config), 2000-2002 (streaming), 3000-3003 (custom boot screen), 4000-4012 (game integration) |
 | Parameters | 46 configurable keys (0-45) |
 | Value Storage | uint32_t for thresholds, uint16_t for other settings |
 | Integration | Integrated with SettingsStore for persistence |
 | Persistence | Automatic flash wear leveling (settings), dedicated flash pages (bitmap) |
 | Streaming Mode | Commands 2000/2001 for live sensor data (~100Hz) |
 | Custom Boot Screen | Commands 3000-3003 for 128x64 monochrome BMP upload (max 1280 bytes) |
-| Features | Thresholds, debounce, double trigger, cutoffs, keyboard mappings, ADC channels, custom splash |
+| Features | Thresholds, debounce, double trigger, cutoffs, keyboard mappings, ADC channels, custom splash, tosu game integration |
 
 ## USB Mode Compatibility
 

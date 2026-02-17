@@ -42,6 +42,8 @@ enum class ControlCommand : uint8_t {
     SetLedEnablePlayerColor,
     EnterMenu,
     ExitMenu,
+    SetTosuMode,
+    SetTosuJudgment,
 };
 
 struct ControlMessage {
@@ -51,6 +53,8 @@ struct ControlMessage {
         usb_player_led_t player_led;
         uint8_t led_brightness;
         bool led_enable_player_color;
+        bool tosu_mode_active;
+        uint8_t tosu_judgment; // 0=miss, 1=ok, 2=great
     } data;
 };
 
@@ -115,6 +119,12 @@ void core1_task() {
                 break;
             case ControlCommand::ExitMenu:
                 display.showIdle();
+                break;
+            case ControlCommand::SetTosuMode:
+                led.setTosuMode(control_msg.data.tosu_mode_active);
+                break;
+            case ControlCommand::SetTosuJudgment:
+                led.setTosuJudgment(control_msg.data.tosu_judgment);
                 break;
             }
         }
@@ -256,6 +266,43 @@ int main() {
 
         // Process serial configuration commands
         serial_config.processSerial();
+
+        // Poll for tosu commands after serial processing
+        {
+            auto tosu_cmd = serial_config.consumeTosuCommand();
+            if (tosu_cmd.type != Utils::SerialConfig::TosuCommand::Type::None) {
+                ControlMessage msg{};
+                switch (tosu_cmd.type) {
+                case Utils::SerialConfig::TosuCommand::Type::ModeEnter:
+                    msg.command = ControlCommand::SetTosuMode;
+                    msg.data.tosu_mode_active = true;
+                    queue_try_add(&control_queue, &msg);
+                    break;
+                case Utils::SerialConfig::TosuCommand::Type::ModeExit:
+                    msg.command = ControlCommand::SetTosuMode;
+                    msg.data.tosu_mode_active = false;
+                    queue_try_add(&control_queue, &msg);
+                    break;
+                case Utils::SerialConfig::TosuCommand::Type::JudgmentGreat:
+                    msg.command = ControlCommand::SetTosuJudgment;
+                    msg.data.tosu_judgment = 2;
+                    queue_try_add(&control_queue, &msg);
+                    break;
+                case Utils::SerialConfig::TosuCommand::Type::JudgmentOk:
+                    msg.command = ControlCommand::SetTosuJudgment;
+                    msg.data.tosu_judgment = 1;
+                    queue_try_add(&control_queue, &msg);
+                    break;
+                case Utils::SerialConfig::TosuCommand::Type::JudgmentMiss:
+                    msg.command = ControlCommand::SetTosuJudgment;
+                    msg.data.tosu_judgment = 0;
+                    queue_try_add(&control_queue, &msg);
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
 
         // Send sensor data if streaming is active
         serial_config.sendSensorDataIfStreaming(input_state);

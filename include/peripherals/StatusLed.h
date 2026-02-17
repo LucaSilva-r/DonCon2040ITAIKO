@@ -59,6 +59,11 @@ class StatusLed {
     std::vector<uint32_t> m_leds;
     bool m_active = false;
 
+    // Tosu game integration state
+    bool m_tosu_mode = false;
+    Config::Color m_tosu_judgment_color = {0, 0, 0};
+    bool m_tosu_judgment_pending = false;
+
   public:
     StatusLed(const Config &config);
 
@@ -67,6 +72,9 @@ class StatusLed {
 
     void setInputState(const Utils::InputState &input_state);
     void setPlayerColor(const Config::Color &color);
+
+    void setTosuMode(bool active);
+    void setTosuJudgment(uint8_t judgment);
 
     bool isActive() const;
 
